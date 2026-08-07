@@ -18,6 +18,7 @@ export function MeasureField({
   placeholder?: string;
 }) {
   const [editing, setEditing] = useState(value === undefined);
+  const [focusOnEdit, setFocusOnEdit] = useState(false);
   const [draft, setDraft] = useState(value !== undefined ? String(value) : "");
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function MeasureField({
       {editing ? (
         <div className="flex items-center gap-1.5">
           <Input
-            autoFocus
+            autoFocus={focusOnEdit}
             inputMode="decimal"
             value={draft}
             placeholder={placeholder}
@@ -74,7 +75,10 @@ export function MeasureField({
             variant="ghost"
             className="size-9 text-muted-foreground"
             aria-label={`Editar ${label}`}
-            onClick={() => setEditing(true)}
+            onClick={() => {
+              setFocusOnEdit(true);
+              setEditing(true);
+            }}
           >
             <Pencil className="size-4" />
           </Button>
