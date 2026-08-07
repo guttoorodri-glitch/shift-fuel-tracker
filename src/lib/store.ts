@@ -183,6 +183,26 @@ export const actions = {
     })),
 };
 
+/* ---------- backup ---------- */
+
+export function serializeState(s: AppState) {
+  return JSON.stringify({ app: "posto-controle", version: 1, exportedAt: new Date().toISOString(), data: s }, null, 2);
+}
+
+export function importState(raw: string): boolean {
+  const parsed = JSON.parse(raw) as { data?: Partial<AppState> } | Partial<AppState>;
+  const data = ("data" in parsed && parsed.data ? parsed.data : parsed) as Partial<AppState>;
+  if (!Array.isArray(data.tanks) || !Array.isArray(data.attendants)) return false;
+  update(() => ({
+    shifts: typeof data.shifts === "number" ? data.shifts : defaultState.shifts,
+    tanks: data.tanks as Tank[],
+    attendants: (data.attendants as Attendant[]).map((a) => ({ ...a, folgas: a.folgas ?? [] })),
+    openings: data.openings ?? {},
+    sales: data.sales ?? {},
+  }));
+  return true;
+}
+
 /* ---------- derivados ---------- */
 
 export function totalSalesOfDay(s: AppState, date: string, tankId: string) {
