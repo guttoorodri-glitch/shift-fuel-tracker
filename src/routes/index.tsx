@@ -1,24 +1,134 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Gauge } from "lucide-react";
+import { AppShell } from "@/components/AppShell";
+import { MeasureField } from "@/components/MeasureField";
+import { Button } from "@/components/ui/button";
+import {
+  actions,
+  estimatedLevel,
+  fmtL,
+  formatBR,
+  shiftISO,
+  todayISO,
+  totalSalesOfDay,
+  useAppState,
+  weekdayBR,
+} from "@/lib/store";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Controle de Turnos — Posto de Combustíveis" },
+      {
+        name: "description",
+        content:
+          "Registre a medição dos tanques no início do turno 1 e as vendas de cada turno do posto, com edição de qualquer medida.",
+      },
+      { property: "og:title", content: "Controle de Turnos — Posto de Combustíveis" },
+      {
+        property: "og:description",
+        content: "Medições de tanques e vendas por turno na palma da mão.",
+      },
+    ],
+  }),
+  component: TurnosPage,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function TurnosPage() {
+  const state = useAppState();
+  const [date, setDate] = useState(todayISO());
+  const shifts = Array.from({ length: state.shifts }, (_, i) => i + 1);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <AppShell title="Controle de Turnos" subtitle="Medições e vendas do dia">
+      <div className="mb-5 flex items-center justify-between rounded-xl border border-border bg-card p-2">
+        <Button size="icon" variant="ghost" onClick={() => setDate(shiftISO(date, -1))}>
+          <ChevronLeft className="size-5" />
+        </Button>
+        <div className="text-center">
+          <p className="font-display text-xl text-foreground">{formatBR(date)}</p>
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            {weekdayBR(date)}
+          </p>
+        </div>
+        <Button size="icon" variant="ghost" onClick={() => setDate(shiftISO(date, 1))}>
+          <ChevronRight className="size-5" />
+        </Button>
+      </div>
+
+      <section className="mb-6 rounded-xl border border-border bg-card p-4">
+        <div className="mb-1 flex items-center gap-2">
+          <Gauge className="size-4 text-primary" />
+          <h2 className="font-display text-lg text-foreground">Medição — início do Turno 1</h2>
+        </div>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Informe a medida de todos os tanques ao abrir o dia.
+        </p>
+        {state.tanks.map((t) => (
+          <MeasureField
+            key={t.id}
+            label={t.name}
+            color={t.color}
+            value={state.openings[date]?.[t.id]}
+            onSave={(v) => actions.setOpening(date, t.id, v)}
+          />
+        ))}
+      </section>
+
+      {shifts.map((shift) => (
+        <section key={shift} className="mb-6 rounded-xl border border-border bg-card p-4">
+          <h2 className="font-display text-lg text-foreground">Vendas — Turno {shift}</h2>
+          <p className="mb-2 text-xs text-muted-foreground">
+            {state.attendants
+              .filter((a) => a.shift === shift)
+              .map((a) => `${a.name} (${a.start}–${a.end})`)
+              .join(" · ") || "Nenhum frentista na escala deste turno"}
+          </p>
+          {state.tanks.map((t) => (
+            <MeasureField
+              key={t.id}
+              label={t.name}
+              color={t.color}
+              placeholder="Litros"
+              value={state.sales[date]?.[shift]?.[t.id]}
+              onSave={(v) => actions.setSale(date, shift, t.id, v)}
+            />
+          ))}
+        </section>
+      ))}
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="mb-3 font-display text-lg text-foreground">Resumo do dia</h2>
+        <div className="space-y-4">
+          {state.tanks.map((t) => {
+            const sold = totalSalesOfDay(state, date, t.id);
+            const level = estimatedLevel(state, date, t.id);
+            const pct = level !== undefined ? Math.min(100, (level / t.capacity) * 100) : 0;
+            return (
+              <div key={t.id}>
+                <div className="mb-1 flex items-baseline justify-between text-sm">
+                  <span className="text-foreground">{t.name}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    vendido {fmtL(sold)}
+                  </span>
+                </div>
+                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${pct}%`, backgroundColor: t.color }}
+                  />
+                </div>
+                <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                  {level !== undefined
+                    ? `Estoque estimado ${fmtL(level)} de ${fmtL(t.capacity)}`
+                    : `Sem medição de abertura · capacidade ${fmtL(t.capacity)}`}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </AppShell>
   );
 }
