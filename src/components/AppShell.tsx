@@ -1,0 +1,53 @@
+import { Link } from "@tanstack/react-router";
+import { Fuel, CalendarDays, Settings, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+
+const nav: { to: string; label: string; icon: LucideIcon }[] = [
+  { to: "/", label: "Turnos", icon: Fuel },
+  { to: "/escala", label: "Escala", icon: CalendarDays },
+  { to: "/configuracoes", label: "Ajustes", icon: Settings },
+];
+
+export function AppShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-background pb-24">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto max-w-3xl px-4 py-4">
+          <p className="font-display text-2xl tracking-wide text-foreground">{title}</p>
+          {subtitle ? (
+            <p className="mt-0.5 text-xs uppercase tracking-widest text-muted-foreground">
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card">
+        <div className="mx-auto flex max-w-3xl">
+          {nav.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              activeOptions={{ exact: to === "/" }}
+              className="flex flex-1 flex-col items-center gap-1 py-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground transition-colors"
+              activeProps={{ className: "text-primary" }}
+            >
+              <Icon className="size-5" />
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
