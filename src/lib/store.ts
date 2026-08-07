@@ -37,7 +37,7 @@ export const todayISO = () => {
 };
 
 export const shiftISO = (iso: string, days: number) => {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
   const date = new Date(y, m - 1, d + days);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
     date.getDate(),
@@ -50,7 +50,7 @@ export const formatBR = (iso: string) => {
 };
 
 export const weekdayBR = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
   return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][new Date(y, m - 1, d).getDay()];
 };
 
