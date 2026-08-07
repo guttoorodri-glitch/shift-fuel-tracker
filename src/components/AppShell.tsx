@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { Fuel, CalendarDays, Settings, type LucideIcon } from "lucide-react";
+import { Fuel, CalendarDays, Settings, DatabaseBackup, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Turnos", icon: Fuel },
   { to: "/escala", label: "Escala", icon: CalendarDays },
+  { to: "/backup", label: "Backup", icon: DatabaseBackup },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
 ];
 
