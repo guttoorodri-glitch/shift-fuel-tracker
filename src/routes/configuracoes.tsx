@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,7 +147,15 @@ function ConfigPage() {
   );
 }
 
-function TankEditor({ tank, onDone }: { tank: Tank; onDone: () => void }) {
+function TankEditor({
+  tank,
+  index,
+  onDone,
+}: {
+  tank: Tank;
+  index: number;
+  onDone: () => void;
+}) {
   const [name, setName] = useState(tank.name);
   const [capacity, setCapacity] = useState(String(tank.capacity));
   const [color, setColor] = useState(tank.color);
@@ -155,7 +163,9 @@ function TankEditor({ tank, onDone }: { tank: Tank; onDone: () => void }) {
   return (
     <div className="space-y-3 rounded-xl border border-primary/50 bg-card p-4">
       <div>
-        <Label className="text-xs text-muted-foreground">Nome do combustível</Label>
+        <Label className="text-xs text-muted-foreground">
+          Nome do combustível (Tanque {index + 1})
+        </Label>
         <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div>
