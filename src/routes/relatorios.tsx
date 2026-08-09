@@ -59,9 +59,9 @@ function RelatoriosPage() {
 
   const byTank = useMemo(() => {
     const totals = totalsByTank(state, from, to);
-    return state.tanks.map((t) => ({
-      name: t.name,
-      short: t.name.length > 12 ? `${t.name.slice(0, 11)}…` : t.name,
+    return state.tanks.map((t, i) => ({
+      name: `${i + 1}. ${t.name}`,
+      short: `${i + 1}. ${t.name.length > 10 ? `${t.name.slice(0, 9)}…` : t.name}`,
       color: t.color,
       litros: totals[t.id] ?? 0,
     }));
