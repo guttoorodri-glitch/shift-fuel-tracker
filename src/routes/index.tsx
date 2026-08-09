@@ -76,10 +76,10 @@ function TurnosPage() {
         <p className="mb-2 text-xs text-muted-foreground">
           Informe a medida de todos os tanques ao abrir o dia.
         </p>
-        {state.tanks.map((t) => (
+        {state.tanks.map((t, i) => (
           <MeasureField
             key={t.id}
-            label={t.name}
+            label={`${i + 1}. ${t.name}`}
             color={t.color}
             value={state.openings[date]?.[t.id]}
             onSave={(v) => actions.setOpening(date, t.id, v)}
@@ -96,10 +96,10 @@ function TurnosPage() {
               .map((a) => `${a.name} (${a.start}–${a.end})`)
               .join(" · ") || "Nenhum frentista na escala deste turno"}
           </p>
-          {state.tanks.map((t) => (
+          {state.tanks.map((t, i) => (
             <MeasureField
               key={t.id}
-              label={t.name}
+              label={`${i + 1}. ${t.name}`}
               color={t.color}
               placeholder="Litros"
               value={state.sales[date]?.[shift]?.[t.id]}
@@ -114,8 +114,8 @@ function TurnosPage() {
         <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={state.tanks.map((t) => ({
-                name: t.name.length > 12 ? `${t.name.slice(0, 11)}…` : t.name,
+              data={state.tanks.map((t, i) => ({
+                name: `${i + 1}. ${t.name.length > 10 ? `${t.name.slice(0, 9)}…` : t.name}`,
                 color: t.color,
                 litros: totalSalesOfDay(state, date, t.id),
               }))}
@@ -155,14 +155,16 @@ function TurnosPage() {
         <h2 className="mb-3 font-display text-lg text-foreground">Resumo do dia</h2>
         <div className="space-y-4">
 
-          {state.tanks.map((t) => {
+          {state.tanks.map((t, i) => {
             const sold = totalSalesOfDay(state, date, t.id);
             const level = estimatedLevel(state, date, t.id);
             const pct = level !== undefined ? Math.min(100, (level / t.capacity) * 100) : 0;
             return (
               <div key={t.id}>
                 <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className="text-foreground">{t.name}</span>
+                  <span className="text-foreground">
+                    {i + 1}. {t.name}
+                  </span>
                   <span className="tabular-nums text-muted-foreground">
                     vendido {fmtL(sold)}
                   </span>

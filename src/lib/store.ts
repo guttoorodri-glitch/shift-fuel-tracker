@@ -136,6 +136,16 @@ export const actions = {
       tanks: s.tanks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
     })),
 
+  moveTank: (id: string, dir: -1 | 1) =>
+    update((s) => {
+      const i = s.tanks.findIndex((t) => t.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= s.tanks.length) return s;
+      const tanks = [...s.tanks];
+      [tanks[i], tanks[j]] = [tanks[j] as Tank, tanks[i] as Tank];
+      return { ...s, tanks };
+    }),
+
   removeTank: (id: string) =>
     update((s) => ({ ...s, tanks: s.tanks.filter((t) => t.id !== id) })),
 

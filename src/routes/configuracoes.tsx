@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +61,7 @@ function ConfigPage() {
         </div>
       </section>
 
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between">
         <h2 className="font-display text-lg text-foreground">Tanques</h2>
         <Button
           size="sm"
@@ -73,22 +73,51 @@ function ConfigPage() {
           <Plus className="size-4" /> Adicionar
         </Button>
       </div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Use as setas para definir a sequência: o Tanque 1 aparece primeiro em todas as telas.
+      </p>
 
       <div className="space-y-3">
-        {state.tanks.map((tank) =>
+        {state.tanks.map((tank, i) =>
           editing === tank.id ? (
-            <TankEditor key={tank.id} tank={tank} onDone={() => setEditing(null)} />
+            <TankEditor key={tank.id} tank={tank} index={i} onDone={() => setEditing(null)} />
           ) : (
             <div
               key={tank.id}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4"
+              className="flex items-center gap-2 rounded-xl border border-border bg-card p-3"
             >
+              <div className="flex flex-col">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-7"
+                  disabled={i === 0}
+                  aria-label={`Mover ${tank.name} para cima`}
+                  onClick={() => actions.moveTank(tank.id, -1)}
+                >
+                  <ChevronUp className="size-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-7"
+                  disabled={i === state.tanks.length - 1}
+                  aria-label={`Mover ${tank.name} para baixo`}
+                  onClick={() => actions.moveTank(tank.id, 1)}
+                >
+                  <ChevronDown className="size-4" />
+                </Button>
+              </div>
               <span
-                className="size-8 shrink-0 rounded-lg"
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg font-display text-base text-black/80"
                 style={{ backgroundColor: tank.color }}
-              />
+              >
+                {i + 1}
+              </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{tank.name}</p>
+                <p className="truncate text-sm font-medium text-foreground">
+                  Tanque {i + 1} · {tank.name}
+                </p>
                 <p className="text-xs tabular-nums text-muted-foreground">
                   Capacidade {fmtL(tank.capacity)}
                 </p>
@@ -113,11 +142,20 @@ function ConfigPage() {
           ),
         )}
       </div>
+
     </AppShell>
   );
 }
 
-function TankEditor({ tank, onDone }: { tank: Tank; onDone: () => void }) {
+function TankEditor({
+  tank,
+  index,
+  onDone,
+}: {
+  tank: Tank;
+  index: number;
+  onDone: () => void;
+}) {
   const [name, setName] = useState(tank.name);
   const [capacity, setCapacity] = useState(String(tank.capacity));
   const [color, setColor] = useState(tank.color);
@@ -125,7 +163,9 @@ function TankEditor({ tank, onDone }: { tank: Tank; onDone: () => void }) {
   return (
     <div className="space-y-3 rounded-xl border border-primary/50 bg-card p-4">
       <div>
-        <Label className="text-xs text-muted-foreground">Nome do combustível</Label>
+        <Label className="text-xs text-muted-foreground">
+          Nome do combustível (Tanque {index + 1})
+        </Label>
         <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div>
