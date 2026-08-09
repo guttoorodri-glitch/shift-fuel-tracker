@@ -218,3 +218,43 @@ export function estimatedLevel(s: AppState, date: string, tankId: string) {
 
 export const fmtL = (n: number) =>
   `${n.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} L`;
+
+/* ---------- relatórios ---------- */
+
+export const monthStartISO = (iso: string) => `${iso.slice(0, 7)}-01`;
+
+export function datesWithSales(s: AppState) {
+  return Object.keys(s.sales).sort();
+}
+
+/** Soma por tanque em um intervalo (inclusive) */
+export function totalsByTank(s: AppState, from: string, to: string) {
+  const result: Record<string, number> = {};
+  for (const date of Object.keys(s.sales)) {
+    if (date < from || date > to) continue;
+    for (const turn of Object.values(s.sales[date] ?? {})) {
+      for (const [tankId, liters] of Object.entries(turn)) {
+        result[tankId] = (result[tankId] ?? 0) + (liters ?? 0);
+      }
+    }
+  }
+  return result;
+}
+
+/** Total geral por dia dentro do intervalo */
+export function dailyTotals(s: AppState, from: string, to: string) {
+  const days: { date: string; total: number }[] = [];
+  for (const date of Object.keys(s.sales).sort()) {
+    if (date < from || date > to) continue;
+    let total = 0;
+    for (const turn of Object.values(s.sales[date] ?? {})) {
+      for (const liters of Object.values(turn)) total += liters ?? 0;
+    }
+    days.push({ date, total });
+  }
+  return days;
+}
+
+export function totalInRange(s: AppState, from: string, to: string) {
+  return Object.values(totalsByTank(s, from, to)).reduce((a, b) => a + b, 0);
+}
