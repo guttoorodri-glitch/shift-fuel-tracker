@@ -98,9 +98,52 @@ function TurnosPage() {
         </section>
       ))}
 
+      <section className="mb-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="mb-3 font-display text-lg text-foreground">Vendas do dia por combustível</h2>
+        <div className="h-56 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={state.tanks.map((t) => ({
+                name: t.name.length > 12 ? `${t.name.slice(0, 11)}…` : t.name,
+                color: t.color,
+                litros: totalSalesOfDay(state, date, t.id),
+              }))}
+              margin={{ top: 4, right: 4, bottom: 4, left: -12 }}
+            >
+              <CartesianGrid stroke="var(--border)" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                stroke="var(--border)"
+              />
+              <Tooltip
+                formatter={(v: number) => fmtL(v)}
+                contentStyle={{
+                  background: "var(--popover)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  color: "var(--popover-foreground)",
+                  fontSize: 12,
+                }}
+              />
+              <Bar dataKey="litros" radius={[6, 6, 0, 0]}>
+                {state.tanks.map((t) => (
+                  <Cell key={t.id} fill={t.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="mb-3 font-display text-lg text-foreground">Resumo do dia</h2>
         <div className="space-y-4">
+
           {state.tanks.map((t) => {
             const sold = totalSalesOfDay(state, date, t.id);
             const level = estimatedLevel(state, date, t.id);
