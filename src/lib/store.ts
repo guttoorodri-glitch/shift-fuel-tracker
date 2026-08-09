@@ -67,8 +67,8 @@ const defaultState: AppState = {
   attendants: [
     { id: "a1", name: "Frentista 1", shift: 1, start: "06:00", end: "14:00", folgas: [] },
     { id: "a2", name: "Frentista 2", shift: 2, start: "14:00", end: "22:00", folgas: [] },
-    { id: "a3", name: "Frentista 3", shift: 3, start: "22:00", end: "06:00", folgas: [] },
   ],
+
   openings: {},
   sales: {},
 };
