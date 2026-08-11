@@ -216,7 +216,50 @@ export const actions = {
           : a,
       ),
     })),
+
+  /* ---------- produtos ---------- */
+
+  addProduct: (p: Omit<Product, "id">) =>
+    update((s) => ({ ...s, products: [...s.products, { ...p, id: uid() }] })),
+
+  updateProduct: (id: string, patch: Partial<Product>) =>
+    update((s) => ({
+      ...s,
+      products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    })),
+
+  removeProduct: (id: string) =>
+    update((s) => ({ ...s, products: s.products.filter((p) => p.id !== id) })),
+
+  setProductSale: (date: string, shift: number, productId: string, qty: number) =>
+    update((s) => {
+      const day = s.productSales[date] ?? {};
+      const turn = day[shift] ?? {};
+      return {
+        ...s,
+        productSales: {
+          ...s.productSales,
+          [date]: { ...day, [shift]: { ...turn, [productId]: qty } },
+        },
+      };
+    }),
+
+  addRestock: (r: Omit<Restock, "id">) =>
+    update((s) => ({ ...s, restocks: [...s.restocks, { ...r, id: uid() }] })),
+
+  updateRestock: (id: string, patch: Partial<Restock>) =>
+    update((s) => ({
+      ...s,
+      restocks: s.restocks.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    })),
+
+  removeRestock: (id: string) =>
+    update((s) => ({ ...s, restocks: s.restocks.filter((r) => r.id !== id) })),
+
+  /** Restauração de fábrica: zera todos os dados do aplicativo */
+  resetFactory: () => update(() => structuredClone(defaultState)),
 };
+
 
 /* ---------- backup ---------- */
 
