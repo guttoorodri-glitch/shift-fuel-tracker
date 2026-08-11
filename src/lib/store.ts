@@ -17,6 +17,22 @@ export type Attendant = {
   folgas: string[];
 };
 
+export type Product = {
+  id: string;
+  name: string;
+  color: string;
+  unit: string;
+  /** Estoque inicial cadastrado pelo usuário */
+  initialStock: number;
+};
+
+export type Restock = {
+  id: string;
+  productId: string;
+  date: string;
+  qty: number;
+};
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
@@ -25,7 +41,12 @@ export type AppState = {
   openings: Record<string, Record<string, number>>;
   /** sales[data][turno][tankId] = litros vendidos */
   sales: Record<string, Record<string, Record<string, number>>>;
+  products: Product[];
+  /** productSales[data][turno][productId] = quantidade vendida */
+  productSales: Record<string, Record<string, Record<string, number>>>;
+  restocks: Restock[];
 };
+
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
