@@ -17,6 +17,22 @@ export type Attendant = {
   folgas: string[];
 };
 
+export type Product = {
+  id: string;
+  name: string;
+  color: string;
+  unit: string;
+  /** Estoque inicial cadastrado pelo usuário */
+  initialStock: number;
+};
+
+export type Restock = {
+  id: string;
+  productId: string;
+  date: string;
+  qty: number;
+};
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
@@ -25,7 +41,12 @@ export type AppState = {
   openings: Record<string, Record<string, number>>;
   /** sales[data][turno][tankId] = litros vendidos */
   sales: Record<string, Record<string, Record<string, number>>>;
+  products: Product[];
+  /** productSales[data][turno][productId] = quantidade vendida */
+  productSales: Record<string, Record<string, Record<string, number>>>;
+  restocks: Restock[];
 };
+
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -71,7 +92,11 @@ const defaultState: AppState = {
 
   openings: {},
   sales: {},
+  products: [],
+  productSales: {},
+  restocks: [],
 };
+
 
 function load(): AppState {
   if (typeof window === "undefined") return defaultState;
@@ -191,7 +216,50 @@ export const actions = {
           : a,
       ),
     })),
+
+  /* ---------- produtos ---------- */
+
+  addProduct: (p: Omit<Product, "id">) =>
+    update((s) => ({ ...s, products: [...s.products, { ...p, id: uid() }] })),
+
+  updateProduct: (id: string, patch: Partial<Product>) =>
+    update((s) => ({
+      ...s,
+      products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    })),
+
+  removeProduct: (id: string) =>
+    update((s) => ({ ...s, products: s.products.filter((p) => p.id !== id) })),
+
+  setProductSale: (date: string, shift: number, productId: string, qty: number) =>
+    update((s) => {
+      const day = s.productSales[date] ?? {};
+      const turn = day[shift] ?? {};
+      return {
+        ...s,
+        productSales: {
+          ...s.productSales,
+          [date]: { ...day, [shift]: { ...turn, [productId]: qty } },
+        },
+      };
+    }),
+
+  addRestock: (r: Omit<Restock, "id">) =>
+    update((s) => ({ ...s, restocks: [...s.restocks, { ...r, id: uid() }] })),
+
+  updateRestock: (id: string, patch: Partial<Restock>) =>
+    update((s) => ({
+      ...s,
+      restocks: s.restocks.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    })),
+
+  removeRestock: (id: string) =>
+    update((s) => ({ ...s, restocks: s.restocks.filter((r) => r.id !== id) })),
+
+  /** Restauração de fábrica: zera todos os dados do aplicativo */
+  resetFactory: () => update(() => structuredClone(defaultState)),
 };
+
 
 /* ---------- backup ---------- */
 
@@ -209,7 +277,11 @@ export function importState(raw: string): boolean {
     attendants: (data.attendants as Attendant[]).map((a) => ({ ...a, folgas: a.folgas ?? [] })),
     openings: data.openings ?? {},
     sales: data.sales ?? {},
+    products: data.products ?? [],
+    productSales: data.productSales ?? {},
+    restocks: data.restocks ?? [],
   }));
+
   return true;
 }
 
@@ -268,3 +340,66 @@ export function dailyTotals(s: AppState, from: string, to: string) {
 export function totalInRange(s: AppState, from: string, to: string) {
   return Object.values(totalsByTank(s, from, to)).reduce((a, b) => a + b, 0);
 }
+
+/* ---------- produtos: derivados ---------- */
+
+export const fmtQty = (n: number) =>
+  n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+
+export function productSold(s: AppState, productId: string, from?: string, to?: string) {
+  let total = 0;
+  for (const [date, day] of Object.entries(s.productSales)) {
+    if (from && date < from) continue;
+    if (to && date > to) continue;
+    for (const turn of Object.values(day ?? {})) total += turn[productId] ?? 0;
+  }
+  return total;
+}
+
+export function productRestocked(s: AppState, productId: string, from?: string, to?: string) {
+  return s.restocks
+    .filter(
+      (r) =>
+        r.productId === productId && (!from || r.date >= from) && (!to || r.date <= to),
+    )
+    .reduce((a, r) => a + (r.qty ?? 0), 0);
+}
+
+/** Saldo atual = estoque inicial + reposições - vendas */
+export function productBalance(s: AppState, productId: string) {
+  const product = s.products.find((p) => p.id === productId);
+  if (!product) return 0;
+  return product.initialStock + productRestocked(s, productId) - productSold(s, productId);
+}
+
+export function productSalesByProduct(s: AppState, from: string, to: string) {
+  const result: Record<string, number> = {};
+  for (const p of s.products) result[p.id] = productSold(s, p.id, from, to);
+  return result;
+}
+
+export function productDailyTotals(s: AppState, from: string, to: string) {
+  const days: { date: string; total: number }[] = [];
+  for (const date of Object.keys(s.productSales).sort()) {
+    if (date < from || date > to) continue;
+    let total = 0;
+    for (const turn of Object.values(s.productSales[date] ?? {})) {
+      for (const q of Object.values(turn)) total += q ?? 0;
+    }
+    days.push({ date, total });
+  }
+  return days;
+}
+
+export function productSalesByShift(s: AppState, date: string, productId: string) {
+  const day = s.productSales[date] ?? {};
+  const out: Record<string, number> = {};
+  for (const [shift, turn] of Object.entries(day)) out[shift] = turn[productId] ?? 0;
+  return out;
+}
+
+export const weekStartISO = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  const date = new Date(y, m - 1, d);
+  return shiftISO(iso, -date.getDay());
+};

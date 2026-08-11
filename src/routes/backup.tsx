@@ -1,11 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Download, Mail, RotateCcw, Share2, Upload } from "lucide-react";
+import { AlertTriangle, Download, Mail, RotateCcw, Share2, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatBR, importState, serializeState, todayISO, useAppState } from "@/lib/store";
+import {
+  actions,
+  formatBR,
+  importState,
+  serializeState,
+  todayISO,
+  useAppState,
+} from "@/lib/store";
+
 
 export const Route = createFileRoute("/backup")({
   head: () => ({
@@ -167,6 +175,8 @@ function BackupPage() {
         </p>
       </section>
 
+      <FactoryReset onStatus={setStatus} />
+
       {status ? (
         <p className="mt-4 rounded-lg border border-primary/40 bg-secondary p-3 text-xs text-foreground">
           {status}
@@ -175,6 +185,75 @@ function BackupPage() {
     </AppShell>
   );
 }
+
+function FactoryReset({ onStatus }: { onStatus: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState(false);
+
+  const confirmar = () => {
+    if (senha !== "posto10") {
+      setErro(true);
+      return;
+    }
+    actions.resetFactory();
+    setSenha("");
+    setErro(false);
+    setOpen(false);
+    onStatus("Restauração de fábrica concluída: todos os dados foram zerados.");
+  };
+
+  return (
+    <section className="mt-6 space-y-3 rounded-xl border border-destructive/50 bg-card p-4">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="size-4 text-destructive" />
+        <h2 className="font-display text-lg text-foreground">Restaurar de fábrica</h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Zera todos os dados do aplicativo: tanques, frentistas, medidas, vendas, produtos,
+        estoque e reposições. Faça um backup antes — esta ação não pode ser desfeita.
+      </p>
+
+      {open ? (
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Senha para confirmar</Label>
+          <Input
+            type="password"
+            autoComplete="off"
+            value={senha}
+            placeholder="Digite a senha"
+            onChange={(e) => {
+              setSenha(e.target.value);
+              setErro(false);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && confirmar()}
+          />
+          {erro ? <p className="text-xs text-destructive">Senha incorreta.</p> : null}
+          <div className="flex gap-2">
+            <Button variant="destructive" className="flex-1" onClick={confirmar}>
+              Zerar todos os dados
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setOpen(false);
+                setSenha("");
+                setErro(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="destructive" className="w-full" onClick={() => setOpen(true)}>
+          <RotateCcw className="size-4" /> Restaurar de fábrica
+        </Button>
+      )}
+    </section>
+  );
+}
+
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (

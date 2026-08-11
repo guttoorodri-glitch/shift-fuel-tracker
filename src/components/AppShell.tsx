@@ -5,6 +5,7 @@ import {
   Settings,
   DatabaseBackup,
   BarChart3,
+  ShoppingBasket,
   Moon,
   Sun,
   type LucideIcon,
@@ -15,10 +16,12 @@ import { useTheme } from "@/lib/theme";
 const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/", label: "Turnos", icon: Fuel },
   { to: "/relatorios", label: "Vendas", icon: BarChart3 },
+  { to: "/produtos", label: "Produtos", icon: ShoppingBasket },
   { to: "/escala", label: "Escala", icon: CalendarDays },
   { to: "/backup", label: "Backup", icon: DatabaseBackup },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
 ];
+
 
 export function AppShell({
   title,
