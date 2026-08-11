@@ -92,7 +92,11 @@ const defaultState: AppState = {
 
   openings: {},
   sales: {},
+  products: [],
+  productSales: {},
+  restocks: [],
 };
+
 
 function load(): AppState {
   if (typeof window === "undefined") return defaultState;
@@ -230,7 +234,11 @@ export function importState(raw: string): boolean {
     attendants: (data.attendants as Attendant[]).map((a) => ({ ...a, folgas: a.folgas ?? [] })),
     openings: data.openings ?? {},
     sales: data.sales ?? {},
+    products: data.products ?? [],
+    productSales: data.productSales ?? {},
+    restocks: data.restocks ?? [],
   }));
+
   return true;
 }
 
