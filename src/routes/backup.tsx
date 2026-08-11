@@ -1,11 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Download, Mail, RotateCcw, Share2, Upload } from "lucide-react";
+import { AlertTriangle, Download, Mail, RotateCcw, Share2, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatBR, importState, serializeState, todayISO, useAppState } from "@/lib/store";
+import {
+  actions,
+  formatBR,
+  importState,
+  serializeState,
+  todayISO,
+  useAppState,
+} from "@/lib/store";
+
 
 export const Route = createFileRoute("/backup")({
   head: () => ({
