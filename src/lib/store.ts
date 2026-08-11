@@ -340,3 +340,66 @@ export function dailyTotals(s: AppState, from: string, to: string) {
 export function totalInRange(s: AppState, from: string, to: string) {
   return Object.values(totalsByTank(s, from, to)).reduce((a, b) => a + b, 0);
 }
+
+/* ---------- produtos: derivados ---------- */
+
+export const fmtQty = (n: number) =>
+  n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+
+export function productSold(s: AppState, productId: string, from?: string, to?: string) {
+  let total = 0;
+  for (const [date, day] of Object.entries(s.productSales)) {
+    if (from && date < from) continue;
+    if (to && date > to) continue;
+    for (const turn of Object.values(day ?? {})) total += turn[productId] ?? 0;
+  }
+  return total;
+}
+
+export function productRestocked(s: AppState, productId: string, from?: string, to?: string) {
+  return s.restocks
+    .filter(
+      (r) =>
+        r.productId === productId && (!from || r.date >= from) && (!to || r.date <= to),
+    )
+    .reduce((a, r) => a + (r.qty ?? 0), 0);
+}
+
+/** Saldo atual = estoque inicial + reposições - vendas */
+export function productBalance(s: AppState, productId: string) {
+  const product = s.products.find((p) => p.id === productId);
+  if (!product) return 0;
+  return product.initialStock + productRestocked(s, productId) - productSold(s, productId);
+}
+
+export function productSalesByProduct(s: AppState, from: string, to: string) {
+  const result: Record<string, number> = {};
+  for (const p of s.products) result[p.id] = productSold(s, p.id, from, to);
+  return result;
+}
+
+export function productDailyTotals(s: AppState, from: string, to: string) {
+  const days: { date: string; total: number }[] = [];
+  for (const date of Object.keys(s.productSales).sort()) {
+    if (date < from || date > to) continue;
+    let total = 0;
+    for (const turn of Object.values(s.productSales[date] ?? {})) {
+      for (const q of Object.values(turn)) total += q ?? 0;
+    }
+    days.push({ date, total });
+  }
+  return days;
+}
+
+export function productSalesByShift(s: AppState, date: string, productId: string) {
+  const day = s.productSales[date] ?? {};
+  const out: Record<string, number> = {};
+  for (const [shift, turn] of Object.entries(day)) out[shift] = turn[productId] ?? 0;
+  return out;
+}
+
+export const weekStartISO = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  const date = new Date(y, m - 1, d);
+  return shiftISO(iso, -date.getDay());
+};
