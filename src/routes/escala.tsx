@@ -138,8 +138,18 @@ function EscalaPage() {
             </Button>
           </div>
         </div>
+        <label className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-foreground">
+          <input
+            type="checkbox"
+            className="size-4 accent-[var(--folga)]"
+            checked={state.sundayOff ?? false}
+            onChange={(e) => actions.setSundayOff(e.target.checked)}
+          />
+          Folgar aos domingos (todos os frentistas)
+        </label>
+
         <p className="mb-3 text-xs text-muted-foreground">
-          Toque em um dia para marcar a folga (destacada em vermelho).
+          Toque em um dia para alternar: trabalho → folga (vermelho) → falta (roxo).
         </p>
 
         <div className="overflow-x-auto">
