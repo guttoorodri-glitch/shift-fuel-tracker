@@ -15,6 +15,8 @@ export type Attendant = {
   end: string;
   /** Datas de folga em formato ISO (yyyy-mm-dd) */
   folgas: string[];
+  /** Datas de falta em formato ISO (yyyy-mm-dd) */
+  faltas?: string[];
 };
 
 export type Product = {
@@ -45,6 +47,8 @@ export type AppState = {
   /** productSales[data][turno][productId] = quantidade vendida */
   productSales: Record<string, Record<string, Record<string, number>>>;
   restocks: Restock[];
+  /** Folga automática para todos os frentistas em todos os domingos */
+  sundayOff?: boolean;
 };
 
 
@@ -95,6 +99,7 @@ const defaultState: AppState = {
   products: [],
   productSales: {},
   restocks: [],
+  sundayOff: false,
 };
 
 
@@ -217,6 +222,23 @@ export const actions = {
       ),
     })),
 
+  toggleFalta: (id: string, date: string) =>
+    update((s) => ({
+      ...s,
+      attendants: s.attendants.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              faltas: (a.faltas ?? []).includes(date)
+                ? (a.faltas ?? []).filter((d) => d !== date)
+                : [...(a.faltas ?? []), date],
+            }
+          : a,
+      ),
+    })),
+
+  setSundayOff: (on: boolean) => update((s) => ({ ...s, sundayOff: on })),
+
   /* ---------- produtos ---------- */
 
   addProduct: (p: Omit<Product, "id">) =>
@@ -274,12 +296,17 @@ export function importState(raw: string): boolean {
   update(() => ({
     shifts: typeof data.shifts === "number" ? data.shifts : defaultState.shifts,
     tanks: data.tanks as Tank[],
-    attendants: (data.attendants as Attendant[]).map((a) => ({ ...a, folgas: a.folgas ?? [] })),
+    attendants: (data.attendants as Attendant[]).map((a) => ({
+      ...a,
+      folgas: a.folgas ?? [],
+      faltas: a.faltas ?? [],
+    })),
     openings: data.openings ?? {},
     sales: data.sales ?? {},
     products: data.products ?? [],
     productSales: data.productSales ?? {},
     restocks: data.restocks ?? [],
+    sundayOff: data.sundayOff ?? false,
   }));
 
   return true;
@@ -403,3 +430,18 @@ export const weekStartISO = (iso: string) => {
   const date = new Date(y, m - 1, d);
   return shiftISO(iso, -date.getDay());
 };
+
+/** Domingo? (iso yyyy-mm-dd) */
+export function isSunday(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  return new Date(y, m - 1, d).getDay() === 0;
+}
+
+export type DayStatus = "trabalho" | "folga" | "falta";
+
+export function dayStatus(s: AppState, a: Attendant, iso: string): DayStatus {
+  if ((a.faltas ?? []).includes(iso)) return "falta";
+  if (a.folgas.includes(iso)) return "folga";
+  if (s.sundayOff && isSunday(iso)) return "folga";
+  return "trabalho";
+}

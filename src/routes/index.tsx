@@ -30,13 +30,13 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Controle de Turnos — Posto de Combustíveis" },
+      { title: "Controle de Turnos — Posto 10" },
       {
         name: "description",
         content:
           "Registre a medição dos tanques no início do turno 1 e as vendas de cada turno do posto, com edição de qualquer medida.",
       },
-      { property: "og:title", content: "Controle de Turnos — Posto de Combustíveis" },
+      { property: "og:title", content: "Controle de Turnos — Posto 10" },
       {
         property: "og:description",
         content: "Medições de tanques e vendas por turno na palma da mão.",

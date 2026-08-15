@@ -42,13 +42,13 @@ import {
 export const Route = createFileRoute("/produtos")({
   head: () => ({
     meta: [
-      { title: "Venda de Produtos — Controle de Estoque do Posto" },
+      { title: "Venda de Produtos — Controle de Estoque do Posto 10" },
       {
         name: "description",
         content:
           "Cadastre produtos da loja de conveniência, lance as vendas por turno, registre reposições e acompanhe o saldo de estoque com gráficos comparativos.",
       },
-      { property: "og:title", content: "Venda de Produtos — Controle de Estoque do Posto" },
+      { property: "og:title", content: "Venda de Produtos — Controle de Estoque do Posto 10" },
       {
         property: "og:description",
         content:

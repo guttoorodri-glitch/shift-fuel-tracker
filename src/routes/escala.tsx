@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   actions,
+  dayStatus,
   shiftISO,
   todayISO,
   useAppState,
@@ -17,13 +18,13 @@ import {
 export const Route = createFileRoute("/escala")({
   head: () => ({
     meta: [
-      { title: "Escala de Frentistas — Posto" },
+      { title: "Escala de Frentistas — Posto 10" },
       {
         name: "description",
         content:
           "Monte a escala do posto: turnos, nome e horário de cada frentista e marcação de folgas destacadas.",
       },
-      { property: "og:title", content: "Escala de Frentistas — Posto" },
+      { property: "og:title", content: "Escala de Frentistas — Posto 10" },
       {
         property: "og:description",
         content: "Turnos, horários e folgas dos frentistas em uma só tela.",
@@ -138,8 +139,18 @@ function EscalaPage() {
             </Button>
           </div>
         </div>
+        <label className="mb-3 flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-foreground">
+          <input
+            type="checkbox"
+            className="size-4 accent-[var(--folga)]"
+            checked={state.sundayOff ?? false}
+            onChange={(e) => actions.setSundayOff(e.target.checked)}
+          />
+          Folgar aos domingos (todos os frentistas)
+        </label>
+
         <p className="mb-3 text-xs text-muted-foreground">
-          Toque em um dia para marcar a folga (destacada em vermelho).
+          Toque em um dia para alternar: trabalho → folga (vermelho) → falta (roxo).
         </p>
 
         <div className="overflow-x-auto">
@@ -167,20 +178,29 @@ function EscalaPage() {
                     {a.name}
                   </td>
                   {days.map((d) => {
-                    const off = a.folgas.includes(d);
+                    const status = dayStatus(state, a, d);
+                    const cycle = () => {
+                      if (status === "trabalho") actions.toggleFolga(a.id, d);
+                      else if (status === "folga") {
+                        if (a.folgas.includes(d)) actions.toggleFolga(a.id, d);
+                        actions.toggleFalta(a.id, d);
+                      } else actions.toggleFalta(a.id, d);
+                    };
                     return (
                       <td key={d}>
                         <button
                           type="button"
-                          onClick={() => actions.toggleFolga(a.id, d)}
-                          aria-label={`${off ? "Remover" : "Marcar"} folga de ${a.name} em ${d}`}
+                          onClick={cycle}
+                          aria-label={`Alternar situação de ${a.name} em ${d} (atual: ${status})`}
                           className={`h-9 w-full rounded-md border text-[10px] font-semibold uppercase transition-colors ${
-                            off
-                              ? "border-folga bg-folga text-folga-foreground"
-                              : "border-border bg-muted text-muted-foreground"
+                            status === "falta"
+                              ? "border-falta bg-falta text-falta-foreground"
+                              : status === "folga"
+                                ? "border-folga bg-folga text-folga-foreground"
+                                : "border-border bg-muted text-muted-foreground"
                           }`}
                         >
-                          {off ? "Folga" : "T" + a.shift}
+                          {status === "falta" ? "Falta" : status === "folga" ? "Folga" : "T" + a.shift}
                         </button>
                       </td>
                     );
