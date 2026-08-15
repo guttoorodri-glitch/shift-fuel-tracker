@@ -10,13 +10,13 @@ import { actions, fmtL, useAppState, type Tank } from "@/lib/store";
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações dos Tanques — Posto" },
+      { title: "Configurações dos Tanques — Posto 10" },
       {
         name: "description",
         content:
           "Configure cor, nome do combustível e capacidade de cada tanque, além da quantidade de turnos do posto.",
       },
-      { property: "og:title", content: "Configurações dos Tanques — Posto" },
+      { property: "og:title", content: "Configurações dos Tanques — Posto 10" },
       {
         property: "og:description",
         content: "Cores, nomes e capacidades dos tanques e turnos do posto.",

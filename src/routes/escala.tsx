@@ -17,13 +17,13 @@ import {
 export const Route = createFileRoute("/escala")({
   head: () => ({
     meta: [
-      { title: "Escala de Frentistas — Posto" },
+      { title: "Escala de Frentistas — Posto 10" },
       {
         name: "description",
         content:
           "Monte a escala do posto: turnos, nome e horário de cada frentista e marcação de folgas destacadas.",
       },
-      { property: "og:title", content: "Escala de Frentistas — Posto" },
+      { property: "og:title", content: "Escala de Frentistas — Posto 10" },
       {
         property: "og:description",
         content: "Turnos, horários e folgas dos frentistas em uma só tela.",

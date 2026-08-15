@@ -78,13 +78,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#101418" },
-      { title: "Posto — Controle de Vendas e Turnos" },
+      { title: "Posto 10 — Controle de Vendas e Turnos" },
       {
         name: "description",
         content:
           "Aplicativo para controlar vendas, medições de tanques e escala de frentistas do posto de combustíveis.",
       },
-      { property: "og:title", content: "Posto — Controle de Vendas e Turnos" },
+      { property: "og:title", content: "Posto 10 — Controle de Vendas e Turnos" },
       {
         property: "og:description",
         content: "Medições, vendas por turno e escala de frentistas do posto.",

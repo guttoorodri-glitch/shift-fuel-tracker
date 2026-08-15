@@ -30,13 +30,13 @@ import {
 export const Route = createFileRoute("/relatorios")({
   head: () => ({
     meta: [
-      { title: "Relatório de Vendas — Posto de Combustíveis" },
+      { title: "Relatório de Vendas — Posto 10" },
       {
         name: "description",
         content:
           "Total vendido no mês desde o dia 01, filtro por período e gráficos de barras nas cores de cada combustível.",
       },
-      { property: "og:title", content: "Relatório de Vendas — Posto de Combustíveis" },
+      { property: "og:title", content: "Relatório de Vendas — Posto 10" },
       {
         property: "og:description",
         content: "Acompanhe o volume vendido por combustível, por dia e por período.",

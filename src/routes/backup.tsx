@@ -18,13 +18,13 @@ import {
 export const Route = createFileRoute("/backup")({
   head: () => ({
     meta: [
-      { title: "Backup e Restauração — Posto" },
+      { title: "Backup e Restauração — Posto 10" },
       {
         name: "description",
         content:
           "Salve um backup dos dados do posto, envie por e-mail ou WhatsApp e restaure as informações quando precisar.",
       },
-      { property: "og:title", content: "Backup e Restauração — Posto" },
+      { property: "og:title", content: "Backup e Restauração — Posto 10" },
       {
         property: "og:description",
         content: "Backup dos dados do posto por arquivo ou e-mail e restauração completa.",
