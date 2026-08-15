@@ -5,6 +5,7 @@ import {
   Boxes,
   CalendarRange,
   PackagePlus,
+  ClipboardCheck,
   Pencil,
   Plus,
   Trash2,
@@ -318,6 +319,10 @@ function EstoqueTab({ today }: { today: string }) {
       </section>
 
       <RestockSection today={today} />
+
+      <div className="mt-5">
+        <StockCountSection today={today} />
+      </div>
     </>
   );
 }
@@ -417,6 +422,214 @@ function ProductEditor({
         </Button>
       </div>
     </div>
+  );
+}
+
+function StockCountSection({ today }: { today: string }) {
+  const state = useAppState();
+  const [productId, setProductId] = useState("");
+  const [date, setDate] = useState(today);
+  const [counted, setCounted] = useState("");
+  const [note, setNote] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  const selected = productId || state.products[0]?.id || "";
+  const product = state.products.find((p) => p.id === selected);
+  const expected = selected ? productBalance(state, selected) : 0;
+  const parsed = Number(counted.replace(",", "."));
+  const diff = Number.isFinite(parsed) ? parsed - expected : 0;
+
+  const confirmar = () => {
+    setOk(null);
+    if (!product || !Number.isFinite(parsed) || parsed < 0) {
+      setErro("Informe a quantidade contada.");
+      return;
+    }
+    if (senha !== "posto10") {
+      setErro("Senha incorreta.");
+      return;
+    }
+    actions.addStockCount({
+      productId: product.id,
+      date,
+      counted: parsed,
+      expected,
+      note: note.trim() || undefined,
+    });
+    setCounted("");
+    setNote("");
+    setSenha("");
+    setErro(null);
+    setOk(`Estoque de ${product.name} acertado para ${fmtQty(parsed)} ${product.unit}.`);
+  };
+
+  const list = [...(state.counts ?? [])].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 15);
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <ClipboardCheck className="size-4 text-primary" />
+        <h2 className="font-display text-lg text-foreground">Contagem de estoque físico</h2>
+      </div>
+
+      {state.products.length === 0 ? (
+        <p className="text-xs text-muted-foreground">Cadastre um produto primeiro.</p>
+      ) : (
+        <>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Conte o produto na prateleira e informe a quantidade real. O app calcula a falta ou
+            sobra e acerta o saldo do estoque.
+          </p>
+
+          <Label className="text-xs text-muted-foreground">Produto</Label>
+          <select
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+            value={selected}
+            onChange={(e) => {
+              setProductId(e.target.value);
+              setOk(null);
+              setErro(null);
+            }}
+          >
+            {state.products.map((p, i) => (
+              <option key={p.id} value={p.id}>
+                {i + 1}. {p.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Data da contagem</Label>
+              <Input
+                className="mt-1"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Contagem física</Label>
+              <Input
+                className="mt-1"
+                inputMode="decimal"
+                value={counted}
+                placeholder="0"
+                onChange={(e) => {
+                  setCounted(e.target.value);
+                  setErro(null);
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-lg bg-muted p-3">
+              <p className="font-display text-xl tabular-nums text-foreground">
+                {fmtQty(expected)}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Saldo no sistema
+              </p>
+            </div>
+            <div className="rounded-lg bg-muted p-3">
+              <p
+                className={`font-display text-xl tabular-nums ${
+                  diff < 0 ? "text-destructive" : diff > 0 ? "text-primary" : "text-foreground"
+                }`}
+              >
+                {diff > 0 ? "+" : ""}
+                {fmtQty(diff)}
+              </p>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {diff < 0 ? "Falta" : diff > 0 ? "Sobra" : "Sem diferença"}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <Label className="text-xs text-muted-foreground">Observação (opcional)</Label>
+            <Input
+              className="mt-1"
+              value={note}
+              maxLength={140}
+              placeholder="Ex.: perda por validade"
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+
+          <div className="mt-3">
+            <Label className="text-xs text-muted-foreground">Senha para acertar o estoque</Label>
+            <Input
+              className="mt-1"
+              type="password"
+              autoComplete="off"
+              value={senha}
+              placeholder="Digite a senha"
+              onChange={(e) => {
+                setSenha(e.target.value);
+                setErro(null);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && confirmar()}
+            />
+          </div>
+
+          {erro ? <p className="mt-2 text-xs text-destructive">{erro}</p> : null}
+          {ok ? <p className="mt-2 text-xs text-foreground">{ok}</p> : null}
+
+          <Button className="mt-3 w-full" onClick={confirmar}>
+            <ClipboardCheck className="size-4" /> Acertar estoque
+          </Button>
+
+          {list.length > 0 ? (
+            <div className="mt-4 space-y-1">
+              {list.map((c) => {
+                const p = state.products.find((x) => x.id === c.productId);
+                return (
+                  <div
+                    key={c.id}
+                    className="border-b border-border/60 py-2 text-sm last:border-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="flex-1 truncate text-foreground">
+                        {formatBR(c.date)} — {p?.name ?? "Produto removido"}
+                      </span>
+                      <span
+                        className={`tabular-nums ${
+                          c.diff < 0
+                            ? "text-destructive"
+                            : c.diff > 0
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        {c.diff > 0 ? "+" : ""}
+                        {fmtQty(c.diff)} {p?.unit ?? ""}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 text-destructive"
+                        aria-label="Excluir contagem"
+                        onClick={() => actions.removeStockCount(c.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Contado {fmtQty(c.counted)} · sistema {fmtQty(c.expected)}
+                      {c.note ? ` · ${c.note}` : ""}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </>
+      )}
+    </section>
   );
 }
 
