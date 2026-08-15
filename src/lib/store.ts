@@ -15,6 +15,8 @@ export type Attendant = {
   end: string;
   /** Datas de folga em formato ISO (yyyy-mm-dd) */
   folgas: string[];
+  /** Datas de falta em formato ISO (yyyy-mm-dd) */
+  faltas?: string[];
 };
 
 export type Product = {
@@ -45,6 +47,8 @@ export type AppState = {
   /** productSales[data][turno][productId] = quantidade vendida */
   productSales: Record<string, Record<string, Record<string, number>>>;
   restocks: Restock[];
+  /** Folga automática para todos os frentistas em todos os domingos */
+  sundayOff?: boolean;
 };
 
 
