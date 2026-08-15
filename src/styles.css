@@ -61,6 +61,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-folga: var(--folga);
   --color-folga-foreground: var(--folga-foreground);
+  --color-falta: var(--falta);
+  --color-falta-foreground: var(--falta-foreground);
   --font-display: "Bebas Neue", "Barlow Condensed", system-ui, sans-serif;
   --font-sans: "Barlow", system-ui, sans-serif;
 }
@@ -88,6 +90,8 @@
   --ring: oklch(0.62 0.15 62);
   --folga: oklch(0.6 0.18 20);
   --folga-foreground: oklch(0.99 0.01 20);
+  --falta: oklch(0.52 0.2 300);
+  --falta-foreground: oklch(0.99 0.01 300);
   --chart-1: oklch(0.7 0.15 78);
   --chart-2: oklch(0.62 0.14 40);
   --chart-3: oklch(0.6 0.13 155);
@@ -125,6 +129,8 @@
   --ring: oklch(0.78 0.15 78);
   --folga: oklch(0.55 0.18 20);
   --folga-foreground: oklch(0.97 0.01 20);
+  --falta: oklch(0.55 0.2 300);
+  --falta-foreground: oklch(0.98 0.01 300);
   --chart-1: oklch(0.78 0.15 78);
   --chart-2: oklch(0.65 0.14 40);
   --chart-3: oklch(0.66 0.13 155);
