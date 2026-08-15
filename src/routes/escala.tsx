@@ -177,20 +177,29 @@ function EscalaPage() {
                     {a.name}
                   </td>
                   {days.map((d) => {
-                    const off = a.folgas.includes(d);
+                    const status = dayStatus(state, a, d);
+                    const cycle = () => {
+                      if (status === "trabalho") actions.toggleFolga(a.id, d);
+                      else if (status === "folga") {
+                        if (a.folgas.includes(d)) actions.toggleFolga(a.id, d);
+                        actions.toggleFalta(a.id, d);
+                      } else actions.toggleFalta(a.id, d);
+                    };
                     return (
                       <td key={d}>
                         <button
                           type="button"
-                          onClick={() => actions.toggleFolga(a.id, d)}
-                          aria-label={`${off ? "Remover" : "Marcar"} folga de ${a.name} em ${d}`}
+                          onClick={cycle}
+                          aria-label={`Alternar situação de ${a.name} em ${d} (atual: ${status})`}
                           className={`h-9 w-full rounded-md border text-[10px] font-semibold uppercase transition-colors ${
-                            off
-                              ? "border-folga bg-folga text-folga-foreground"
-                              : "border-border bg-muted text-muted-foreground"
+                            status === "falta"
+                              ? "border-falta bg-falta text-falta-foreground"
+                              : status === "folga"
+                                ? "border-folga bg-folga text-folga-foreground"
+                                : "border-border bg-muted text-muted-foreground"
                           }`}
                         >
-                          {off ? "Folga" : "T" + a.shift}
+                          {status === "falta" ? "Falta" : status === "folga" ? "Folga" : "T" + a.shift}
                         </button>
                       </td>
                     );
