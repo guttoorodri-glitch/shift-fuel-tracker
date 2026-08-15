@@ -99,6 +99,7 @@ const defaultState: AppState = {
   products: [],
   productSales: {},
   restocks: [],
+  sundayOff: false,
 };
 
 
@@ -220,6 +221,23 @@ export const actions = {
           : a,
       ),
     })),
+
+  toggleFalta: (id: string, date: string) =>
+    update((s) => ({
+      ...s,
+      attendants: s.attendants.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              faltas: (a.faltas ?? []).includes(date)
+                ? (a.faltas ?? []).filter((d) => d !== date)
+                : [...(a.faltas ?? []), date],
+            }
+          : a,
+      ),
+    })),
+
+  setSundayOff: (on: boolean) => update((s) => ({ ...s, sundayOff: on })),
 
   /* ---------- produtos ---------- */
 
