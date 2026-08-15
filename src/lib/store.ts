@@ -35,6 +35,19 @@ export type Restock = {
   qty: number;
 };
 
+export type StockCount = {
+  id: string;
+  productId: string;
+  date: string;
+  /** Quantidade contada fisicamente */
+  counted: number;
+  /** Saldo do sistema no momento da contagem */
+  expected: number;
+  /** counted - expected (negativo = falta, positivo = sobra) */
+  diff: number;
+  note?: string;
+};
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
@@ -47,6 +60,8 @@ export type AppState = {
   /** productSales[data][turno][productId] = quantidade vendida */
   productSales: Record<string, Record<string, Record<string, number>>>;
   restocks: Restock[];
+  /** Contagens de estoque físico (acertos) */
+  counts: StockCount[];
   /** Folga automática para todos os frentistas em todos os domingos */
   sundayOff?: boolean;
 };
@@ -99,6 +114,7 @@ const defaultState: AppState = {
   products: [],
   productSales: {},
   restocks: [],
+  counts: [],
   sundayOff: false,
 };
 
@@ -278,6 +294,20 @@ export const actions = {
   removeRestock: (id: string) =>
     update((s) => ({ ...s, restocks: s.restocks.filter((r) => r.id !== id) })),
 
+  /* ---------- contagem de estoque ---------- */
+
+  addStockCount: (c: Omit<StockCount, "id" | "diff">) =>
+    update((s) => ({
+      ...s,
+      counts: [
+        ...(s.counts ?? []),
+        { ...c, diff: c.counted - c.expected, id: uid() },
+      ],
+    })),
+
+  removeStockCount: (id: string) =>
+    update((s) => ({ ...s, counts: (s.counts ?? []).filter((c) => c.id !== id) })),
+
   /** Restauração de fábrica: zera todos os dados do aplicativo */
   resetFactory: () => update(() => structuredClone(defaultState)),
 };
@@ -306,6 +336,7 @@ export function importState(raw: string): boolean {
     products: data.products ?? [],
     productSales: data.productSales ?? {},
     restocks: data.restocks ?? [],
+    counts: data.counts ?? [],
     sundayOff: data.sundayOff ?? false,
   }));
 
@@ -392,11 +423,26 @@ export function productRestocked(s: AppState, productId: string, from?: string, 
     .reduce((a, r) => a + (r.qty ?? 0), 0);
 }
 
-/** Saldo atual = estoque inicial + reposições - vendas */
+/** Soma dos acertos (falta/sobra) das contagens físicas */
+export function productAdjusted(s: AppState, productId: string, from?: string, to?: string) {
+  return (s.counts ?? [])
+    .filter(
+      (c) =>
+        c.productId === productId && (!from || c.date >= from) && (!to || c.date <= to),
+    )
+    .reduce((a, c) => a + (c.diff ?? 0), 0);
+}
+
+/** Saldo atual = estoque inicial + reposições - vendas + acertos de contagem */
 export function productBalance(s: AppState, productId: string) {
   const product = s.products.find((p) => p.id === productId);
   if (!product) return 0;
-  return product.initialStock + productRestocked(s, productId) - productSold(s, productId);
+  return (
+    product.initialStock +
+    productRestocked(s, productId) -
+    productSold(s, productId) +
+    productAdjusted(s, productId)
+  );
 }
 
 export function productSalesByProduct(s: AppState, from: string, to: string) {
