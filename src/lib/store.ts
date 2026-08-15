@@ -45,7 +45,7 @@ export type StockCount = {
   expected: number;
   /** counted - expected (negativo = falta, positivo = sobra) */
   diff: number;
-  note?: string;
+  note?: string | undefined;
 };
 
 export type AppState = {
