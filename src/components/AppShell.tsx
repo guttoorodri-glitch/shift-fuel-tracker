@@ -19,6 +19,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/relatorios", label: "Vendas", icon: BarChart3 },
   { to: "/produtos", label: "Produtos", icon: ShoppingBasket },
   { to: "/escala", label: "Escala", icon: CalendarDays },
+  { to: "/tarefas", label: "Tarefas", icon: KanbanSquare },
   { to: "/backup", label: "Backup", icon: DatabaseBackup },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
 ];
