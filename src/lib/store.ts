@@ -48,6 +48,18 @@ export type StockCount = {
   note?: string | undefined;
 };
 
+export type TaskStatus = "afazer" | "fazendo" | "feito";
+
+export type Task = {
+  id: string;
+  title: string;
+  note?: string | undefined;
+  due?: string | undefined;
+  assignee?: string | undefined;
+  status: TaskStatus;
+  createdAt: string;
+};
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
@@ -64,6 +76,8 @@ export type AppState = {
   counts: StockCount[];
   /** Folga automática para todos os frentistas em todos os domingos */
   sundayOff?: boolean;
+  /** Tarefas do quadro kanban */
+  tasks?: Task[];
 };
 
 
@@ -116,6 +130,7 @@ const defaultState: AppState = {
   restocks: [],
   counts: [],
   sundayOff: false,
+  tasks: [],
 };
 
 
@@ -308,6 +323,29 @@ export const actions = {
   removeStockCount: (id: string) =>
     update((s) => ({ ...s, counts: (s.counts ?? []).filter((c) => c.id !== id) })),
 
+  /* ---------- tarefas (kanban) ---------- */
+
+  addTask: (t: Omit<Task, "id" | "createdAt">) =>
+    update((s) => ({
+      ...s,
+      tasks: [...(s.tasks ?? []), { ...t, id: uid(), createdAt: new Date().toISOString() }],
+    })),
+
+  updateTask: (id: string, patch: Partial<Task>) =>
+    update((s) => ({
+      ...s,
+      tasks: (s.tasks ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    })),
+
+  setTaskStatus: (id: string, status: TaskStatus) =>
+    update((s) => ({
+      ...s,
+      tasks: (s.tasks ?? []).map((t) => (t.id === id ? { ...t, status } : t)),
+    })),
+
+  removeTask: (id: string) =>
+    update((s) => ({ ...s, tasks: (s.tasks ?? []).filter((t) => t.id !== id) })),
+
   /** Restauração de fábrica: zera todos os dados do aplicativo */
   resetFactory: () => update(() => structuredClone(defaultState)),
 };
@@ -338,6 +376,7 @@ export function importState(raw: string): boolean {
     restocks: data.restocks ?? [],
     counts: data.counts ?? [],
     sundayOff: data.sundayOff ?? false,
+    tasks: data.tasks ?? [],
   }));
 
   return true;
