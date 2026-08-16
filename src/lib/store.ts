@@ -376,6 +376,7 @@ export function importState(raw: string): boolean {
     restocks: data.restocks ?? [],
     counts: data.counts ?? [],
     sundayOff: data.sundayOff ?? false,
+    tasks: data.tasks ?? [],
   }));
 
   return true;
