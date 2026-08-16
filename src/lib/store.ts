@@ -76,6 +76,8 @@ export type AppState = {
   counts: StockCount[];
   /** Folga automática para todos os frentistas em todos os domingos */
   sundayOff?: boolean;
+  /** Tarefas do quadro kanban */
+  tasks?: Task[];
 };
 
 
