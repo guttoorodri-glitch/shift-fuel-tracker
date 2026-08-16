@@ -130,6 +130,7 @@ const defaultState: AppState = {
   restocks: [],
   counts: [],
   sundayOff: false,
+  tasks: [],
 };
 
 
