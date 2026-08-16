@@ -48,6 +48,18 @@ export type StockCount = {
   note?: string | undefined;
 };
 
+export type TaskStatus = "afazer" | "fazendo" | "feito";
+
+export type Task = {
+  id: string;
+  title: string;
+  note?: string | undefined;
+  due?: string | undefined;
+  assignee?: string | undefined;
+  status: TaskStatus;
+  createdAt: string;
+};
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
