@@ -6,6 +6,7 @@ import {
   DatabaseBackup,
   BarChart3,
   ShoppingBasket,
+  KanbanSquare,
   Moon,
   Sun,
   type LucideIcon,

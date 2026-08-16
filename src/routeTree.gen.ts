@@ -15,6 +15,7 @@ import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as TarefasRouteImport } from './routes/tarefas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +47,11 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TarefasRoute = TarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
   '/relatorios': typeof RelatoriosRoute
+  '/tarefas': typeof TarefasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
   '/relatorios': typeof RelatoriosRoute
+  '/tarefas': typeof TarefasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,14 +79,27 @@ export interface FileRoutesById {
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
   '/relatorios': typeof RelatoriosRoute
+  '/tarefas': typeof TarefasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/backup' | '/configuracoes' | '/escala' | '/produtos' | '/relatorios'
+    | '/'
+    | '/backup'
+    | '/configuracoes'
+    | '/escala'
+    | '/produtos'
+    | '/relatorios'
+    | '/tarefas'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/backup' | '/configuracoes' | '/escala' | '/produtos' | '/relatorios'
+    | '/'
+    | '/backup'
+    | '/configuracoes'
+    | '/escala'
+    | '/produtos'
+    | '/relatorios'
+    | '/tarefas'
   id:
     | '__root__'
     | '/'
@@ -87,6 +108,7 @@ export interface FileRouteTypes {
     | '/escala'
     | '/produtos'
     | '/relatorios'
+    | '/tarefas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,6 +118,7 @@ export interface RootRouteChildren {
   EscalaRoute: typeof EscalaRoute
   ProdutosRoute: typeof ProdutosRoute
   RelatoriosRoute: typeof RelatoriosRoute
+  TarefasRoute: typeof TarefasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -142,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RelatoriosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tarefas': {
+      id: '/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof TarefasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -152,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   EscalaRoute: EscalaRoute,
   ProdutosRoute: ProdutosRoute,
   RelatoriosRoute: RelatoriosRoute,
+  TarefasRoute: TarefasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
