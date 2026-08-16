@@ -323,6 +323,29 @@ export const actions = {
   removeStockCount: (id: string) =>
     update((s) => ({ ...s, counts: (s.counts ?? []).filter((c) => c.id !== id) })),
 
+  /* ---------- tarefas (kanban) ---------- */
+
+  addTask: (t: Omit<Task, "id" | "createdAt">) =>
+    update((s) => ({
+      ...s,
+      tasks: [...(s.tasks ?? []), { ...t, id: uid(), createdAt: new Date().toISOString() }],
+    })),
+
+  updateTask: (id: string, patch: Partial<Task>) =>
+    update((s) => ({
+      ...s,
+      tasks: (s.tasks ?? []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    })),
+
+  setTaskStatus: (id: string, status: TaskStatus) =>
+    update((s) => ({
+      ...s,
+      tasks: (s.tasks ?? []).map((t) => (t.id === id ? { ...t, status } : t)),
+    })),
+
+  removeTask: (id: string) =>
+    update((s) => ({ ...s, tasks: (s.tasks ?? []).filter((t) => t.id !== id) })),
+
   /** Restauração de fábrica: zera todos os dados do aplicativo */
   resetFactory: () => update(() => structuredClone(defaultState)),
 };
