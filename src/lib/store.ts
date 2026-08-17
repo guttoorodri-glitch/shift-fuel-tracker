@@ -162,7 +162,7 @@ const defaultState: AppState = {
   counts: [],
   sundayOff: false,
   tasks: [],
-  nozzles: [],
+  nozzles: defaultNozzles(),
   calibrations: [],
 };
 
