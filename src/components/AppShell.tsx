@@ -7,6 +7,8 @@ import {
   BarChart3,
   ShoppingBasket,
   KanbanSquare,
+  Gauge,
+
   Moon,
   Sun,
   type LucideIcon,
@@ -20,6 +22,8 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/produtos", label: "Produtos", icon: ShoppingBasket },
   { to: "/escala", label: "Escala", icon: CalendarDays },
   { to: "/tarefas", label: "Tarefas", icon: KanbanSquare },
+  { to: "/afericao", label: "Aferição", icon: Gauge },
+
   { to: "/backup", label: "Backup", icon: DatabaseBackup },
   { to: "/configuracoes", label: "Ajustes", icon: Settings },
 ];

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AfericaoRouteImport } from './routes/afericao'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as EscalaRouteImport } from './routes/escala'
@@ -20,6 +21,11 @@ import { Route as TarefasRouteImport } from './routes/tarefas'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AfericaoRoute = AfericaoRouteImport.update({
+  id: '/afericao',
+  path: '/afericao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BackupRoute = BackupRouteImport.update({
@@ -55,6 +61,7 @@ const TarefasRoute = TarefasRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/afericao': typeof AfericaoRoute
   '/backup': typeof BackupRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/afericao': typeof AfericaoRoute
   '/backup': typeof BackupRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/afericao': typeof AfericaoRoute
   '/backup': typeof BackupRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/afericao'
     | '/backup'
     | '/configuracoes'
     | '/escala'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/afericao'
     | '/backup'
     | '/configuracoes'
     | '/escala'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/afericao'
     | '/backup'
     | '/configuracoes'
     | '/escala'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AfericaoRoute: typeof AfericaoRoute
   BackupRoute: typeof BackupRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   EscalaRoute: typeof EscalaRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/afericao': {
+      id: '/afericao'
+      path: '/afericao'
+      fullPath: '/afericao'
+      preLoaderRoute: typeof AfericaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/backup': {
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AfericaoRoute: AfericaoRoute,
   BackupRoute: BackupRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   EscalaRoute: EscalaRoute,
