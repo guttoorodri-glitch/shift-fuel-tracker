@@ -60,6 +60,33 @@ export type Task = {
   createdAt: string;
 };
 
+/** Bico de abastecimento */
+export type Nozzle = {
+  id: string;
+  /** Identificação do bico, ex.: "Bico 1" */
+  name: string;
+  /** Combustível do bico */
+  fuel: string;
+};
+
+export type CalibrationItem = {
+  nozzleId: string;
+  /** Resultado em ml na vazão lenta */
+  lenta?: number | undefined;
+  /** Resultado em ml na vazão rápida */
+  rapida?: number | undefined;
+};
+
+/** Aferição de bicos */
+export type Calibration = {
+  id: string;
+  date: string;
+  responsavel: string;
+  items: CalibrationItem[];
+  createdAt: string;
+};
+
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
