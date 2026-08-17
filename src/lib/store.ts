@@ -141,7 +141,17 @@ export const weekdayBR = (iso: string) => {
 
 const STORAGE_KEY = "posto-app-v1";
 
+/** 36 bicos padrão (Bico 1 ... Bico 36) */
+export function defaultNozzles(): Nozzle[] {
+  return Array.from({ length: 36 }, (_, i) => ({
+    id: `n${i + 1}`,
+    name: `Bico ${i + 1}`,
+    fuel: "Gasolina Comum",
+  }));
+}
+
 const defaultState: AppState = {
+
   shifts: 3,
   tanks: [
     { id: "t1", name: "Gasolina Comum", color: "#e0b428", capacity: 15000 },
