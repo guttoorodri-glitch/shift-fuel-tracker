@@ -252,11 +252,19 @@ function AfericaoPage() {
           ) : (
             <div className="space-y-3">
               {nozzles.map((n) => (
-                <div key={n.id} className="rounded-xl border border-border bg-card p-4">
+                <div
+                  key={n.id}
+                  className="rounded-xl border border-border bg-card p-4 border-l-4"
+                  style={{ borderLeftColor: fuelColor(state, n.fuel) ?? "var(--border)" }}
+                >
                   <p className="font-display text-lg text-foreground">{n.name}</p>
-                  <p className="mb-3 text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <p
+                    className="mb-3 text-[11px] uppercase tracking-widest"
+                    style={{ color: fuelColor(state, n.fuel) ?? "var(--muted-foreground)" }}
+                  >
                     {n.fuel}
                   </p>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label>Vazão lenta (ml)</Label>
