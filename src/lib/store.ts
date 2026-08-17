@@ -182,7 +182,11 @@ function load(): AppState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
-    return { ...defaultState, ...(JSON.parse(raw) as AppState) };
+    const parsed = JSON.parse(raw) as AppState;
+    const merged = { ...defaultState, ...parsed };
+    if (!merged.nozzles || merged.nozzles.length === 0) merged.nozzles = defaultNozzles();
+    return merged;
+
   } catch {
     return defaultState;
   }
