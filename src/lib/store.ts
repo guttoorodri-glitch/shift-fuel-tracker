@@ -621,3 +621,9 @@ export function calibrationApproved(c: Calibration) {
   if (values.length === 0) return false;
   return values.every((v) => v >= -CALIBRATION_LIMIT && v <= CALIBRATION_LIMIT);
 }
+
+/** Cor do combustível conforme os tanques cadastrados */
+export function fuelColor(s: AppState, fuel: string): string | undefined {
+  const key = fuel.trim().toLowerCase();
+  return s.tanks.find((t) => t.name.trim().toLowerCase() === key)?.color;
+}
