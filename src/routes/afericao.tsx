@@ -180,17 +180,34 @@ function AfericaoPage() {
                   key={n.id}
                   className="flex items-center gap-2 border-b border-border/60 py-3 last:border-0"
                 >
-                  <Gauge className="size-4 shrink-0 text-primary" />
+                  <Gauge
+                    className="size-4 shrink-0"
+                    style={{ color: fuelColor(state, n.fuel) ?? "var(--muted-foreground)" }}
+                  />
                   <Input
                     value={n.name}
                     onChange={(e) => actions.updateNozzle(n.id, { name: e.target.value })}
-                    className="h-9 flex-1"
+                    className="h-9 w-24 shrink-0"
                   />
-                  <Input
-                    value={n.fuel}
-                    onChange={(e) => actions.updateNozzle(n.id, { fuel: e.target.value })}
-                    className="h-9 flex-1"
-                  />
+                  <select
+                    value={tankNames.includes(n.fuel) ? n.fuel : "__custom"}
+                    onChange={(e) => {
+                      if (e.target.value !== "__custom")
+                        actions.updateNozzle(n.id, { fuel: e.target.value });
+                    }}
+                    className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                    style={{ color: fuelColor(state, n.fuel) ?? undefined }}
+                    aria-label={`Combustível do ${n.name}`}
+                  >
+                    {tankNames.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                    {tankNames.includes(n.fuel) ? null : (
+                      <option value="__custom">{n.fuel || "Selecionar"}</option>
+                    )}
+                  </select>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -206,6 +223,7 @@ function AfericaoPage() {
           </div>
         </section>
       ) : null}
+
 
       {tab === "aferir" ? (
         <section className="space-y-4">
