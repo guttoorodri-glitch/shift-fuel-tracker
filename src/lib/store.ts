@@ -105,6 +105,10 @@ export type AppState = {
   sundayOff?: boolean;
   /** Tarefas do quadro kanban */
   tasks?: Task[];
+  /** Bicos cadastrados */
+  nozzles?: Nozzle[];
+  /** Aferições realizadas */
+  calibrations?: Calibration[];
 };
 
 
@@ -158,6 +162,8 @@ const defaultState: AppState = {
   counts: [],
   sundayOff: false,
   tasks: [],
+  nozzles: [],
+  calibrations: [],
 };
 
 
@@ -370,6 +376,35 @@ export const actions = {
       tasks: (s.tasks ?? []).map((t) => (t.id === id ? { ...t, status } : t)),
     })),
 
+  /* ---------- bicos e aferição ---------- */
+
+  addNozzle: (n: Omit<Nozzle, "id">) =>
+    update((s) => ({ ...s, nozzles: [...(s.nozzles ?? []), { ...n, id: uid() }] })),
+
+  updateNozzle: (id: string, patch: Partial<Nozzle>) =>
+    update((s) => ({
+      ...s,
+      nozzles: (s.nozzles ?? []).map((n) => (n.id === id ? { ...n, ...patch } : n)),
+    })),
+
+  removeNozzle: (id: string) =>
+    update((s) => ({ ...s, nozzles: (s.nozzles ?? []).filter((n) => n.id !== id) })),
+
+  addCalibration: (c: Omit<Calibration, "id" | "createdAt">) =>
+    update((s) => ({
+      ...s,
+      calibrations: [
+        { ...c, id: uid(), createdAt: new Date().toISOString() },
+        ...(s.calibrations ?? []),
+      ],
+    })),
+
+  removeCalibration: (id: string) =>
+    update((s) => ({
+      ...s,
+      calibrations: (s.calibrations ?? []).filter((c) => c.id !== id),
+    })),
+
   removeTask: (id: string) =>
     update((s) => ({ ...s, tasks: (s.tasks ?? []).filter((t) => t.id !== id) })),
 
@@ -404,6 +439,8 @@ export function importState(raw: string): boolean {
     counts: data.counts ?? [],
     sundayOff: data.sundayOff ?? false,
     tasks: data.tasks ?? [],
+    nozzles: data.nozzles ?? [],
+    calibrations: data.calibrations ?? [],
   }));
 
   return true;
@@ -556,4 +593,17 @@ export function dayStatus(s: AppState, a: Attendant, iso: string): DayStatus {
   if (a.folgas.includes(iso)) return "folga";
   if (s.sundayOff && isSunday(iso)) return "folga";
   return "trabalho";
+}
+
+/* ---------- aferição: derivados ---------- */
+
+export const CALIBRATION_LIMIT = 100;
+
+/** Aprovada quando todos os valores informados estão entre -100 e +100 */
+export function calibrationApproved(c: Calibration) {
+  const values = c.items.flatMap((i) =>
+    [i.lenta, i.rapida].filter((v): v is number => typeof v === "number"),
+  );
+  if (values.length === 0) return false;
+  return values.every((v) => v >= -CALIBRATION_LIMIT && v <= CALIBRATION_LIMIT);
 }
