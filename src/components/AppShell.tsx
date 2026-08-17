@@ -7,6 +7,8 @@ import {
   BarChart3,
   ShoppingBasket,
   KanbanSquare,
+  Gauge,
+
   Moon,
   Sun,
   type LucideIcon,
