@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   actions,
   calibrationApproved,
+  fuelColor,
   formatBR,
   todayISO,
   useAppState,
@@ -60,6 +61,8 @@ function AfericaoPage() {
   const state = useAppState();
   const nozzles = state.nozzles ?? [];
   const calibrations = state.calibrations ?? [];
+  const tankNames = state.tanks.map((t) => t.name);
+
 
   const [tab, setTab] = useState<"aferir" | "bicos" | "historico">("aferir");
   const [nozzleForm, setNozzleForm] = useState({ name: "", fuel: "" });
@@ -180,17 +183,34 @@ function AfericaoPage() {
                   key={n.id}
                   className="flex items-center gap-2 border-b border-border/60 py-3 last:border-0"
                 >
-                  <Gauge className="size-4 shrink-0 text-primary" />
+                  <Gauge
+                    className="size-4 shrink-0"
+                    style={{ color: fuelColor(state, n.fuel) ?? "var(--muted-foreground)" }}
+                  />
                   <Input
                     value={n.name}
                     onChange={(e) => actions.updateNozzle(n.id, { name: e.target.value })}
-                    className="h-9 flex-1"
+                    className="h-9 w-24 shrink-0"
                   />
-                  <Input
-                    value={n.fuel}
-                    onChange={(e) => actions.updateNozzle(n.id, { fuel: e.target.value })}
-                    className="h-9 flex-1"
-                  />
+                  <select
+                    value={tankNames.includes(n.fuel) ? n.fuel : "__custom"}
+                    onChange={(e) => {
+                      if (e.target.value !== "__custom")
+                        actions.updateNozzle(n.id, { fuel: e.target.value });
+                    }}
+                    className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                    style={{ color: fuelColor(state, n.fuel) ?? undefined }}
+                    aria-label={`Combustível do ${n.name}`}
+                  >
+                    {tankNames.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                    {tankNames.includes(n.fuel) ? null : (
+                      <option value="__custom">{n.fuel || "Selecionar"}</option>
+                    )}
+                  </select>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -206,6 +226,7 @@ function AfericaoPage() {
           </div>
         </section>
       ) : null}
+
 
       {tab === "aferir" ? (
         <section className="space-y-4">
@@ -231,11 +252,19 @@ function AfericaoPage() {
           ) : (
             <div className="space-y-3">
               {nozzles.map((n) => (
-                <div key={n.id} className="rounded-xl border border-border bg-card p-4">
+                <div
+                  key={n.id}
+                  className="rounded-xl border border-border bg-card p-4 border-l-4"
+                  style={{ borderLeftColor: fuelColor(state, n.fuel) ?? "var(--border)" }}
+                >
                   <p className="font-display text-lg text-foreground">{n.name}</p>
-                  <p className="mb-3 text-[11px] uppercase tracking-widest text-muted-foreground">
+                  <p
+                    className="mb-3 text-[11px] uppercase tracking-widest"
+                    style={{ color: fuelColor(state, n.fuel) ?? "var(--muted-foreground)" }}
+                  >
                     {n.fuel}
                   </p>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label>Vazão lenta (ml)</Label>
@@ -321,8 +350,18 @@ function AfericaoPage() {
                       >
                         <span className="min-w-0 flex-1 truncate text-foreground">
                           {nozzleName(i.nozzleId)}
-                          <span className="text-muted-foreground"> · {nozzleFuel(i.nozzleId)}</span>
+                          <span
+                            style={{
+                              color:
+                                fuelColor(state, nozzleFuel(i.nozzleId)) ??
+                                "var(--muted-foreground)",
+                            }}
+                          >
+                            {" · "}
+                            {nozzleFuel(i.nozzleId)}
+                          </span>
                         </span>
+
                         <span className="tabular-nums text-muted-foreground">
                           L: {i.lenta ?? "—"} / R: {i.rapida ?? "—"}
                         </span>

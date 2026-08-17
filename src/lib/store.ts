@@ -141,7 +141,17 @@ export const weekdayBR = (iso: string) => {
 
 const STORAGE_KEY = "posto-app-v1";
 
+/** 36 bicos padrão (Bico 1 ... Bico 36) */
+export function defaultNozzles(): Nozzle[] {
+  return Array.from({ length: 36 }, (_, i) => ({
+    id: `n${i + 1}`,
+    name: `Bico ${i + 1}`,
+    fuel: "Gasolina Comum",
+  }));
+}
+
 const defaultState: AppState = {
+
   shifts: 3,
   tanks: [
     { id: "t1", name: "Gasolina Comum", color: "#e0b428", capacity: 15000 },
@@ -162,7 +172,7 @@ const defaultState: AppState = {
   counts: [],
   sundayOff: false,
   tasks: [],
-  nozzles: [],
+  nozzles: defaultNozzles(),
   calibrations: [],
 };
 
@@ -172,7 +182,11 @@ function load(): AppState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
-    return { ...defaultState, ...(JSON.parse(raw) as AppState) };
+    const parsed = JSON.parse(raw) as AppState;
+    const merged = { ...defaultState, ...parsed };
+    if (!merged.nozzles || merged.nozzles.length === 0) merged.nozzles = defaultNozzles();
+    return merged;
+
   } catch {
     return defaultState;
   }
@@ -606,4 +620,10 @@ export function calibrationApproved(c: Calibration) {
   );
   if (values.length === 0) return false;
   return values.every((v) => v >= -CALIBRATION_LIMIT && v <= CALIBRATION_LIMIT);
+}
+
+/** Cor do combustível conforme os tanques cadastrados */
+export function fuelColor(s: AppState, fuel: string): string | undefined {
+  const key = fuel.trim().toLowerCase();
+  return s.tanks.find((t) => t.name.trim().toLowerCase() === key)?.color;
 }
