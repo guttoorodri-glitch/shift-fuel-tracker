@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Gauge } from "lucide-react";
 import {
   Bar,
@@ -49,6 +49,11 @@ export const Route = createFileRoute("/")({
 function TurnosPage() {
   const state = useAppState();
   const [date, setDate] = useState(todayISO());
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    setDate(todayISO());
+  }, []);
   const shifts = Array.from({ length: state.shifts }, (_, i) => i + 1);
 
   return (
@@ -58,9 +63,9 @@ function TurnosPage() {
           <ChevronLeft className="size-5" />
         </Button>
         <div className="text-center">
-          <p className="font-display text-xl text-foreground">{formatBR(date)}</p>
+          <p className="font-display text-xl text-foreground">{mounted ? formatBR(date) : ""}</p>
           <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
-            {weekdayBR(date)}
+            {mounted ? weekdayBR(date) : ""}
           </p>
         </div>
         <Button size="icon" variant="ghost" onClick={() => setDate(shiftISO(date, 1))}>
