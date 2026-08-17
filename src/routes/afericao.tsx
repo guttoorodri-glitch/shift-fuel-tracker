@@ -61,6 +61,8 @@ function AfericaoPage() {
   const state = useAppState();
   const nozzles = state.nozzles ?? [];
   const calibrations = state.calibrations ?? [];
+  const tankNames = state.tanks.map((t) => t.name);
+
 
   const [tab, setTab] = useState<"aferir" | "bicos" | "historico">("aferir");
   const [nozzleForm, setNozzleForm] = useState({ name: "", fuel: "" });
