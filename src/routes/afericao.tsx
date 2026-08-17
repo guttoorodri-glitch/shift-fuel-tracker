@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   actions,
   calibrationApproved,
+  fuelColor,
   formatBR,
   todayISO,
   useAppState,
