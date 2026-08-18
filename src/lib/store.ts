@@ -87,6 +87,33 @@ export type Calibration = {
 };
 
 
+/** Item (combustível) de uma nota de recebimento */
+export type DeliveryItem = {
+  fuel: string;
+  /** Litros recebidos */
+  qty: number;
+  temperatura?: number | undefined;
+  densidade?: number | undefined;
+  /** Densidade corrigida a 20 °C */
+  densidade20?: number | undefined;
+  /** Teor alcoólico (%) — etanol */
+  teorAlcoolico?: number | undefined;
+  /** % de etanol na gasolina */
+  etanolPct?: number | undefined;
+  /** Ponto de fulgor (°C) — diesel */
+  fulgor?: number | undefined;
+};
+
+/** Recebimento de combustível (nota fiscal) */
+export type Delivery = {
+  id: string;
+  date: string;
+  distribuidora: string;
+  nf: string;
+  items: DeliveryItem[];
+  createdAt: string;
+};
+
 export type AppState = {
   tanks: Tank[];
   shifts: number;
@@ -109,6 +136,8 @@ export type AppState = {
   nozzles?: Nozzle[];
   /** Aferições realizadas */
   calibrations?: Calibration[];
+  /** Recebimentos de combustível */
+  deliveries?: Delivery[];
 };
 
 
@@ -174,6 +203,7 @@ const defaultState: AppState = {
   tasks: [],
   nozzles: defaultNozzles(),
   calibrations: [],
+  deliveries: [],
 };
 
 
@@ -419,6 +449,23 @@ export const actions = {
       calibrations: (s.calibrations ?? []).filter((c) => c.id !== id),
     })),
 
+  /* ---------- recebimento de combustível ---------- */
+
+  addDelivery: (d: Omit<Delivery, "id" | "createdAt">) =>
+    update((s) => ({
+      ...s,
+      deliveries: [
+        { ...d, id: uid(), createdAt: new Date().toISOString() },
+        ...(s.deliveries ?? []),
+      ],
+    })),
+
+  removeDelivery: (id: string) =>
+    update((s) => ({
+      ...s,
+      deliveries: (s.deliveries ?? []).filter((d) => d.id !== id),
+    })),
+
   removeTask: (id: string) =>
     update((s) => ({ ...s, tasks: (s.tasks ?? []).filter((t) => t.id !== id) })),
 
@@ -455,6 +502,7 @@ export function importState(raw: string): boolean {
     tasks: data.tasks ?? [],
     nozzles: data.nozzles ?? [],
     calibrations: data.calibrations ?? [],
+    deliveries: data.deliveries ?? [],
   }));
 
   return true;
