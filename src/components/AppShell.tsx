@@ -8,7 +8,7 @@ import {
   ShoppingBasket,
   KanbanSquare,
   Gauge,
-
+  TruckIcon,
   Moon,
   Sun,
   type LucideIcon,
@@ -16,18 +16,41 @@ import {
 import type { ReactNode } from "react";
 import { useTheme } from "@/lib/theme";
 
-const nav: { to: string; label: string; icon: LucideIcon }[] = [
-  { to: "/", label: "Turnos", icon: Fuel },
-  { to: "/relatorios", label: "Vendas", icon: BarChart3 },
-  { to: "/produtos", label: "Produtos", icon: ShoppingBasket },
-  { to: "/escala", label: "Escala", icon: CalendarDays },
-  { to: "/tarefas", label: "Tarefas", icon: KanbanSquare },
-  { to: "/afericao", label: "Aferição", icon: Gauge },
+type NavItem = { to: string; label: string; icon: LucideIcon; color: string };
 
-  { to: "/backup", label: "Backup", icon: DatabaseBackup },
-  { to: "/configuracoes", label: "Ajustes", icon: Settings },
+const rowOne: NavItem[] = [
+  { to: "/", label: "Turnos", icon: Fuel, color: "var(--primary)" },
+  { to: "/relatorios", label: "Vendas", icon: BarChart3, color: "var(--chart-2)" },
+  { to: "/produtos", label: "Produtos", icon: ShoppingBasket, color: "var(--chart-3)" },
+  { to: "/recebimento", label: "Recebe", icon: TruckIcon, color: "var(--chart-4)" },
+  { to: "/afericao", label: "Aferição", icon: Gauge, color: "var(--chart-5)" },
 ];
 
+const rowTwo: NavItem[] = [
+  { to: "/escala", label: "Escala", icon: CalendarDays, color: "var(--folga)" },
+  { to: "/tarefas", label: "Tarefas", icon: KanbanSquare, color: "var(--falta)" },
+  { to: "/backup", label: "Backup", icon: DatabaseBackup, color: "var(--chart-1)" },
+  { to: "/configuracoes", label: "Ajustes", icon: Settings, color: "var(--muted-foreground)" },
+];
+
+function NavRow({ items }: { items: NavItem[] }) {
+  return (
+    <div className="flex items-stretch justify-between gap-2">
+      {items.map(({ to, label, icon: Icon, color }) => (
+        <Link
+          key={to}
+          to={to}
+          activeOptions={{ exact: to === "/" }}
+          className="flex flex-1 flex-col items-center gap-1.5 rounded-xl px-1 py-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors"
+          activeProps={{ className: "bg-muted text-foreground" }}
+        >
+          <Icon className="size-5" style={{ color }} />
+          <span className="leading-none">{label}</span>
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 export function AppShell({
   title,
@@ -41,7 +64,7 @@ export function AppShell({
   const { theme, toggle } = useTheme();
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-40">
       <header className="sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
           <div className="min-w-0 flex-1">
@@ -66,19 +89,9 @@ export function AppShell({
       <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card">
-        <div className="mx-auto flex max-w-3xl">
-          {nav.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              activeOptions={{ exact: to === "/" }}
-              className="flex flex-1 flex-col items-center gap-1 py-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-colors"
-              activeProps={{ className: "text-primary" }}
-            >
-              <Icon className="size-5" />
-              {label}
-            </Link>
-          ))}
+        <div className="mx-auto flex max-w-3xl flex-col gap-1.5 px-3 py-2">
+          <NavRow items={rowOne} />
+          <NavRow items={rowTwo} />
         </div>
       </nav>
     </div>
