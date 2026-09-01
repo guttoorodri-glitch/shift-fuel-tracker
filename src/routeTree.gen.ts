@@ -15,6 +15,7 @@ import { Route as BackupRouteImport } from './routes/backup'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as RecebimentoRouteImport } from './routes/recebimento'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TarefasRouteImport } from './routes/tarefas'
 
@@ -48,6 +49,11 @@ const ProdutosRoute = ProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecebimentoRoute = RecebimentoRouteImport.update({
+  id: '/recebimento',
+  path: '/recebimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
+  '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
+  '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
+  '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/escala'
     | '/produtos'
+    | '/recebimento'
     | '/relatorios'
     | '/tarefas'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/escala'
     | '/produtos'
+    | '/recebimento'
     | '/relatorios'
     | '/tarefas'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/escala'
     | '/produtos'
+    | '/recebimento'
     | '/relatorios'
     | '/tarefas'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   EscalaRoute: typeof EscalaRoute
   ProdutosRoute: typeof ProdutosRoute
+  RecebimentoRoute: typeof RecebimentoRoute
   RelatoriosRoute: typeof RelatoriosRoute
   TarefasRoute: typeof TarefasRoute
 }
@@ -178,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recebimento': {
+      id: '/recebimento'
+      path: '/recebimento'
+      fullPath: '/recebimento'
+      preLoaderRoute: typeof RecebimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/relatorios': {
       id: '/relatorios'
       path: '/relatorios'
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesRoute: ConfiguracoesRoute,
   EscalaRoute: EscalaRoute,
   ProdutosRoute: ProdutosRoute,
+  RecebimentoRoute: RecebimentoRoute,
   RelatoriosRoute: RelatoriosRoute,
   TarefasRoute: TarefasRoute,
 }
