@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Gauge } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Fuel, Gauge } from "lucide-react";
 import {
   Bar,
   BarChart,
