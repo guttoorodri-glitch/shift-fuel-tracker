@@ -14,6 +14,8 @@ import {
 
 import { AppShell } from "@/components/AppShell";
 import { MeasureField } from "@/components/MeasureField";
+import { TankGauge } from "@/components/TankGauge";
+
 import { Button } from "@/components/ui/button";
 import {
   actions,
