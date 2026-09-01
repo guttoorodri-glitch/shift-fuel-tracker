@@ -52,6 +52,8 @@ function TurnosPage() {
   const state = useAppState();
   const [date, setDate] = useState(todayISO());
   const [mounted, setMounted] = useState(false);
+  const [view, setView] = useState<"barras" | "tanque">("barras");
+
   useEffect(() => {
     setMounted(true);
     setDate(todayISO());
