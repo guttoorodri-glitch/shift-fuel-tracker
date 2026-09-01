@@ -86,7 +86,7 @@ export function ExportPdfSection() {
       a.href = url;
       a.download = name;
       a.click();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       window.open(
         `https://wa.me/?text=${encodeURIComponent(
           `Medições e vendas do Posto 10 — ${formatBR(r.from)} a ${formatBR(r.to)}. Anexe o arquivo ${name} salvo no aparelho.`,
