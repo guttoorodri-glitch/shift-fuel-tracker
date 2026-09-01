@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { AppShell } from "@/components/AppShell";
+import { ExportPdfSection } from "@/components/ExportPdfSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,6 +99,8 @@ function RelatoriosPage() {
         </p>
         <p className="font-display text-4xl tabular-nums text-primary">{fmtL(monthTotal)}</p>
       </section>
+
+      <ExportPdfSection />
 
       <section className="mb-5 rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center gap-2">
