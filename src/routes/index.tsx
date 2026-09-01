@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Gauge } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, Fuel, Gauge } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -14,6 +14,8 @@ import {
 
 import { AppShell } from "@/components/AppShell";
 import { MeasureField } from "@/components/MeasureField";
+import { TankGauge } from "@/components/TankGauge";
+
 import { Button } from "@/components/ui/button";
 import {
   actions,
@@ -50,6 +52,8 @@ function TurnosPage() {
   const state = useAppState();
   const [date, setDate] = useState(todayISO());
   const [mounted, setMounted] = useState(false);
+  const [view, setView] = useState<"barras" | "tanque">("barras");
+
   useEffect(() => {
     setMounted(true);
     setDate(todayISO());
@@ -157,39 +161,85 @@ function TurnosPage() {
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
-        <h2 className="mb-3 font-display text-lg text-foreground">Resumo do dia</h2>
-        <div className="space-y-4">
-
-          {state.tanks.map((t, i) => {
-            const sold = totalSalesOfDay(state, date, t.id);
-            const level = estimatedLevel(state, date, t.id);
-            const pct = level !== undefined ? Math.min(100, (level / t.capacity) * 100) : 0;
-            return (
-              <div key={t.id}>
-                <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className="text-foreground">
-                    {i + 1}. {t.name}
-                  </span>
-                  <span className="tabular-nums text-muted-foreground">
-                    vendido {fmtL(sold)}
-                  </span>
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${pct}%`, backgroundColor: t.color }}
-                  />
-                </div>
-                <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
-                  {level !== undefined
-                    ? `Estoque estimado ${fmtL(level)} de ${fmtL(t.capacity)}`
-                    : `Sem medição de abertura · capacidade ${fmtL(t.capacity)}`}
-                </p>
-              </div>
-            );
-          })}
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg text-foreground">Resumo do dia</h2>
+          <div className="flex rounded-lg border border-border p-0.5">
+            <Button
+              size="sm"
+              variant={view === "barras" ? "default" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setView("barras")}
+            >
+              <BarChart3 className="mr-1 size-3.5" /> Barras
+            </Button>
+            <Button
+              size="sm"
+              variant={view === "tanque" ? "default" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setView("tanque")}
+            >
+              <Fuel className="mr-1 size-3.5" /> Tanques
+            </Button>
+          </div>
         </div>
+
+        {view === "tanque" ? (
+          <div className="grid grid-cols-2 gap-3">
+            {state.tanks.map((t, i) => {
+              const sold = totalSalesOfDay(state, date, t.id);
+              const level = estimatedLevel(state, date, t.id);
+              const pct = level !== undefined ? Math.min(100, (level / t.capacity) * 100) : 0;
+              return (
+                <TankGauge
+                  key={t.id}
+                  index={i}
+                  name={t.name}
+                  color={t.color}
+                  pct={pct}
+                  levelLabel={
+                    level !== undefined
+                      ? `${fmtL(level)} de ${fmtL(t.capacity)}`
+                      : `sem medição · ${fmtL(t.capacity)}`
+                  }
+                  soldLabel={fmtL(sold)}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {state.tanks.map((t, i) => {
+              const sold = totalSalesOfDay(state, date, t.id);
+              const level = estimatedLevel(state, date, t.id);
+              const pct = level !== undefined ? Math.min(100, (level / t.capacity) * 100) : 0;
+              return (
+                <div key={t.id}>
+                  <div className="mb-1 flex items-baseline justify-between text-sm">
+                    <span className="text-foreground">
+                      {i + 1}. {t.name}
+                    </span>
+                    <span className="tabular-nums text-muted-foreground">
+                      vendido {fmtL(sold)}
+                    </span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, backgroundColor: t.color }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                    {level !== undefined
+                      ? `Estoque estimado ${fmtL(level)} de ${fmtL(t.capacity)}`
+                      : `Sem medição de abertura · capacidade ${fmtL(t.capacity)}`}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
+
     </AppShell>
   );
 }
