@@ -53,7 +53,7 @@ export function ExportPdfSection() {
       a.href = url;
       a.download = name;
       a.click();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       setStatus(`PDF salvo como ${name}.`);
     } finally {
       setBusy(false);
