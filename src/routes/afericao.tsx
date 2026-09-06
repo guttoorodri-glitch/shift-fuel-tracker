@@ -12,9 +12,11 @@ import {
   formatBR,
   todayISO,
   useAppState,
+  type AppState,
   type Calibration,
   type CalibrationItem,
 } from "@/lib/store";
+import { afericaoFileName, buildAfericaoPdf } from "@/lib/afericao-pdf";
 
 export const Route = createFileRoute("/afericao")({
   head: () => ({
