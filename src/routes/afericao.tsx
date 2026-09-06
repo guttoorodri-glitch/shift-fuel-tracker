@@ -424,7 +424,7 @@ function AfericaoPage() {
                   <Stamp approved={calibrationApproved(c)} />
                 </div>
 
-                <div className="text-sm">
+                <div className="mb-3 text-sm">
                   {c.items
                     .filter((i) => i.lenta !== undefined || i.rapida !== undefined)
                     .map((i) => (
@@ -452,6 +452,8 @@ function AfericaoPage() {
                       </div>
                     ))}
                 </div>
+
+                <ExportButtons state={state} calibration={c} />
               </div>
             ))
           )}
