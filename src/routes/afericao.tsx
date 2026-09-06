@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Gauge, Plus, Trash2 } from "lucide-react";
+import { FileDown, Gauge, Plus, Share2, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +12,11 @@ import {
   formatBR,
   todayISO,
   useAppState,
+  type AppState,
   type Calibration,
   type CalibrationItem,
 } from "@/lib/store";
+import { afericaoFileName, buildAfericaoPdf } from "@/lib/afericao-pdf";
 
 export const Route = createFileRoute("/afericao")({
   head: () => ({
@@ -53,6 +55,88 @@ function Stamp({ approved }: { approved: boolean }) {
       style={{ boxShadow: "inset 0 0 0 2px currentColor" }}
     >
       {approved ? "Aferição aprovada" : "Aferição reprovada"}
+    </div>
+  );
+}
+
+function ExportButtons({ state, calibration }: { state: AppState; calibration: Calibration }) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const gerar = () => buildAfericaoPdf(state, calibration);
+
+  const baixar = async () => {
+    setBusy(true);
+    try {
+      const blob = await gerar();
+      const name = afericaoFileName(calibration);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus(`PDF salvo como ${name}.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const enviarWhatsApp = async () => {
+    setBusy(true);
+    try {
+      const blob = await gerar();
+      const name = afericaoFileName(calibration);
+      const file = new File([blob], name, { type: "application/pdf" });
+      const nav = navigator as Navigator & {
+        canShare?: (d: { files?: File[] }) => boolean;
+      };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        try {
+          await nav.share({
+            files: [file],
+            title: "Aferição — Posto 10",
+            text: `Aferição de ${formatBR(calibration.date)} — Resp.: ${calibration.responsavel}`,
+          });
+          setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+        } catch {
+          setStatus(null);
+        }
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      window.open(
+        `https://wa.me/?text=${encodeURIComponent(
+          `Aferição do Posto 10 — ${formatBR(calibration.date)}. Anexe o arquivo ${name} salvo no aparelho.`,
+        )}`,
+        "_blank",
+      );
+      setStatus(`O PDF ${name} foi salvo — anexe-o na conversa do WhatsApp.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Button size="sm" disabled={busy} onClick={() => void enviarWhatsApp()}>
+          <Share2 className="size-4" /> WhatsApp
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => void baixar()}>
+          <FileDown className="size-4" /> Salvar PDF
+        </Button>
+      </div>
+      {status ? (
+        <p className="rounded-lg border border-primary/40 bg-secondary p-2 text-xs text-foreground">
+          {status}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -340,7 +424,7 @@ function AfericaoPage() {
                   <Stamp approved={calibrationApproved(c)} />
                 </div>
 
-                <div className="text-sm">
+                <div className="mb-3 text-sm">
                   {c.items
                     .filter((i) => i.lenta !== undefined || i.rapida !== undefined)
                     .map((i) => (
@@ -368,6 +452,8 @@ function AfericaoPage() {
                       </div>
                     ))}
                 </div>
+
+                <ExportButtons state={state} calibration={c} />
               </div>
             ))
           )}
