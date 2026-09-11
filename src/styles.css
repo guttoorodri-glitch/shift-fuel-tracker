@@ -63,6 +63,7 @@
   --color-folga-foreground: var(--folga-foreground);
   --color-falta: var(--falta);
   --color-falta-foreground: var(--falta-foreground);
+  --color-aprovado: var(--aprovado);
   --font-display: "Bebas Neue", "Barlow Condensed", system-ui, sans-serif;
   --font-sans: "Barlow", system-ui, sans-serif;
 }
