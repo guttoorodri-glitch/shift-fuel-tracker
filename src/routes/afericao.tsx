@@ -183,9 +183,27 @@ function AfericaoPage() {
       [id]: { lenta: prev[id]?.lenta ?? "", rapida: prev[id]?.rapida ?? "", [key]: v },
     }));
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const save = () => {
-    if (!responsavel.trim() || !filled) return;
-    actions.addCalibration({ date, responsavel: responsavel.trim(), items });
+    if (!date) {
+      setSaveError("Informe a data da aferição.");
+      return;
+    }
+    if (!responsavel.trim()) {
+      setSaveError("Informe o nome do responsável pela aferição.");
+      return;
+    }
+    if (!filled) {
+      setSaveError("Informe pelo menos um resultado de vazão lenta ou rápida.");
+      return;
+    }
+    setSaveError(null);
+    actions.addCalibration({
+      date,
+      responsavel: responsavel.trim(),
+      items: items.filter((i) => i.lenta !== undefined || i.rapida !== undefined),
+    });
     setValues({});
     setResponsavel("");
     setTab("historico");
