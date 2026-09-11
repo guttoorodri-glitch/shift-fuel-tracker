@@ -49,7 +49,7 @@ function Stamp({ approved }: { approved: boolean }) {
     <div
       className={`inline-flex -rotate-6 items-center justify-center rounded-lg border-4 px-4 py-2 font-display text-lg uppercase tracking-widest ${
         approved
-          ? "border-[var(--folga)] text-[var(--folga)]"
+          ? "border-[var(--aprovado)] text-[var(--aprovado)]"
           : "border-destructive text-destructive"
       }`}
       style={{ boxShadow: "inset 0 0 0 2px currentColor" }}
