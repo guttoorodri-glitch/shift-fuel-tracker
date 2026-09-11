@@ -136,21 +136,22 @@ function ExportButtons({ state, calibration }: { state: AppState; calibration: C
           return;
         }
         const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      window.open(
-        `https://wa.me/?text=${encodeURIComponent(
-          `Aferição do Posto 10 — ${formatBR(calibration.date)}. Anexe o arquivo ${name} salvo no aparelho.`,
-        )}`,
-        "_blank",
-      );
-      setStatus(`O PDF ${name} foi salvo — anexe-o na conversa do WhatsApp.`);
-    } finally {
-      setBusy(false);
-    }
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        a.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(
+            `Aferição do Posto 10 — ${formatBR(calibration.date)}. Anexe o arquivo ${name} salvo no aparelho.`,
+          )}`,
+          "_blank",
+        );
+        setStatus(`O PDF ${name} foi salvo — anexe-o na conversa do WhatsApp.`);
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   return (
