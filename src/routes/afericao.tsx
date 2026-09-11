@@ -49,7 +49,7 @@ function Stamp({ approved }: { approved: boolean }) {
     <div
       className={`inline-flex -rotate-6 items-center justify-center rounded-lg border-4 px-4 py-2 font-display text-lg uppercase tracking-widest ${
         approved
-          ? "border-[var(--folga)] text-[var(--folga)]"
+          ? "border-[var(--aprovado)] text-[var(--aprovado)]"
           : "border-destructive text-destructive"
       }`}
       style={{ boxShadow: "inset 0 0 0 2px currentColor" }}
@@ -183,9 +183,27 @@ function AfericaoPage() {
       [id]: { lenta: prev[id]?.lenta ?? "", rapida: prev[id]?.rapida ?? "", [key]: v },
     }));
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const save = () => {
-    if (!responsavel.trim() || !filled) return;
-    actions.addCalibration({ date, responsavel: responsavel.trim(), items });
+    if (!date) {
+      setSaveError("Informe a data da aferição.");
+      return;
+    }
+    if (!responsavel.trim()) {
+      setSaveError("Informe o nome do responsável pela aferição.");
+      return;
+    }
+    if (!filled) {
+      setSaveError("Informe pelo menos um resultado de vazão lenta ou rápida.");
+      return;
+    }
+    setSaveError(null);
+    actions.addCalibration({
+      date,
+      responsavel: responsavel.trim(),
+      items: items.filter((i) => i.lenta !== undefined || i.rapida !== undefined),
+    });
     setValues({});
     setResponsavel("");
     setTab("historico");
@@ -381,13 +399,16 @@ function AfericaoPage() {
                 </div>
               ) : null}
 
-              <Button
-                className="w-full"
-                disabled={!filled || !responsavel.trim()}
-                onClick={save}
-              >
-                Salvar aferição
-              </Button>
+              <div className="sticky bottom-2 space-y-2">
+                {saveError ? (
+                  <p className="rounded-lg border border-destructive/50 bg-card p-2 text-center text-xs text-destructive">
+                    {saveError}
+                  </p>
+                ) : null}
+                <Button className="h-12 w-full text-base" onClick={save}>
+                  Salvar aferição
+                </Button>
+              </div>
             </div>
           )}
         </section>
