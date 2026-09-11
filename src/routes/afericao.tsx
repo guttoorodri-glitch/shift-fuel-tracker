@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileDown, Gauge, Plus, Share2, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -62,8 +62,29 @@ function Stamp({ approved }: { approved: boolean }) {
 function ExportButtons({ state, calibration }: { state: AppState; calibration: Calibration }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const fileRef = useRef<File | null>(null);
 
   const gerar = () => buildAfericaoPdf(state, calibration);
+
+  // Prepara o arquivo antes do toque, para que o compartilhamento
+  // aconteça no mesmo gesto do usuário (exigência dos navegadores).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const blob = await buildAfericaoPdf(state, calibration);
+        if (alive)
+          fileRef.current = new File([blob], afericaoFileName(calibration), {
+            type: "application/pdf",
+          });
+      } catch {
+        /* ignora — o botão gera novamente se preciso */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [state, calibration]);
 
   const baixar = async () => {
     setBusy(true);
@@ -82,44 +103,55 @@ function ExportButtons({ state, calibration }: { state: AppState; calibration: C
     }
   };
 
-  const enviarWhatsApp = async () => {
-    setBusy(true);
-    try {
-      const blob = await gerar();
-      const name = afericaoFileName(calibration);
-      const file = new File([blob], name, { type: "application/pdf" });
-      const nav = navigator as Navigator & {
-        canShare?: (d: { files?: File[] }) => boolean;
-      };
-      if (nav.share && nav.canShare?.({ files: [file] })) {
-        try {
-          await nav.share({
-            files: [file],
-            title: "Aferição — Posto 10",
-            text: `Aferição de ${formatBR(calibration.date)} — Resp.: ${calibration.responsavel}`,
-          });
-          setStatus("Escolha o WhatsApp na tela de compartilhamento.");
-        } catch {
-          setStatus(null);
-        }
-        return;
-      }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      window.open(
-        `https://wa.me/?text=${encodeURIComponent(
-          `Aferição do Posto 10 — ${formatBR(calibration.date)}. Anexe o arquivo ${name} salvo no aparelho.`,
-        )}`,
-        "_blank",
-      );
-      setStatus(`O PDF ${name} foi salvo — anexe-o na conversa do WhatsApp.`);
-    } finally {
-      setBusy(false);
+  const enviarWhatsApp = () => {
+    const name = afericaoFileName(calibration);
+    const nav = navigator as Navigator & {
+      canShare?: (d: { files?: File[] }) => boolean;
+    };
+    const cached = fileRef.current;
+
+    // Caminho principal: arquivo já pronto, compartilhado no mesmo toque.
+    if (cached && nav.share && nav.canShare?.({ files: [cached] })) {
+      setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+      // Somente o arquivo: com texto junto, o WhatsApp descarta o anexo.
+      nav
+        .share({ files: [cached] })
+        .catch(() => setStatus(null));
+      return;
     }
+
+    void (async () => {
+      setBusy(true);
+      try {
+        const blob = await gerar();
+        const file = new File([blob], name, { type: "application/pdf" });
+        fileRef.current = file;
+        if (nav.share && nav.canShare?.({ files: [file] })) {
+          try {
+            await nav.share({ files: [file] });
+            setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+          } catch {
+            setStatus(null);
+          }
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        a.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(
+            `Aferição do Posto 10 — ${formatBR(calibration.date)}. Anexe o arquivo ${name} salvo no aparelho.`,
+          )}`,
+          "_blank",
+        );
+        setStatus(`O PDF ${name} foi salvo — anexe-o na conversa do WhatsApp.`);
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   return (
