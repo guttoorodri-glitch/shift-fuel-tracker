@@ -103,29 +103,39 @@ function ExportButtons({ state, calibration }: { state: AppState; calibration: C
     }
   };
 
-  const enviarWhatsApp = async () => {
-    setBusy(true);
-    try {
-      const blob = await gerar();
-      const name = afericaoFileName(calibration);
-      const file = new File([blob], name, { type: "application/pdf" });
-      const nav = navigator as Navigator & {
-        canShare?: (d: { files?: File[] }) => boolean;
-      };
-      if (nav.share && nav.canShare?.({ files: [file] })) {
-        try {
-          await nav.share({
-            files: [file],
-            title: "Aferição — Posto 10",
-            text: `Aferição de ${formatBR(calibration.date)} — Resp.: ${calibration.responsavel}`,
-          });
-          setStatus("Escolha o WhatsApp na tela de compartilhamento.");
-        } catch {
-          setStatus(null);
+  const enviarWhatsApp = () => {
+    const name = afericaoFileName(calibration);
+    const nav = navigator as Navigator & {
+      canShare?: (d: { files?: File[] }) => boolean;
+    };
+    const cached = fileRef.current;
+
+    // Caminho principal: arquivo já pronto, compartilhado no mesmo toque.
+    if (cached && nav.share && nav.canShare?.({ files: [cached] })) {
+      setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+      // Somente o arquivo: com texto junto, o WhatsApp descarta o anexo.
+      nav
+        .share({ files: [cached] })
+        .catch(() => setStatus(null));
+      return;
+    }
+
+    void (async () => {
+      setBusy(true);
+      try {
+        const blob = await gerar();
+        const file = new File([blob], name, { type: "application/pdf" });
+        fileRef.current = file;
+        if (nav.share && nav.canShare?.({ files: [file] })) {
+          try {
+            await nav.share({ files: [file] });
+            setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+          } catch {
+            setStatus(null);
+          }
+          return;
         }
-        return;
-      }
-      const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = name;
