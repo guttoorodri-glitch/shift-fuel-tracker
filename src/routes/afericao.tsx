@@ -62,8 +62,29 @@ function Stamp({ approved }: { approved: boolean }) {
 function ExportButtons({ state, calibration }: { state: AppState; calibration: Calibration }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const fileRef = useRef<File | null>(null);
 
   const gerar = () => buildAfericaoPdf(state, calibration);
+
+  // Prepara o arquivo antes do toque, para que o compartilhamento
+  // aconteça no mesmo gesto do usuário (exigência dos navegadores).
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const blob = await buildAfericaoPdf(state, calibration);
+        if (alive)
+          fileRef.current = new File([blob], afericaoFileName(calibration), {
+            type: "application/pdf",
+          });
+      } catch {
+        /* ignora — o botão gera novamente se preciso */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [state, calibration]);
 
   const baixar = async () => {
     setBusy(true);
