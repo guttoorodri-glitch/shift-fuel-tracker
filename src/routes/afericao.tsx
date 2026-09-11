@@ -399,13 +399,16 @@ function AfericaoPage() {
                 </div>
               ) : null}
 
-              <Button
-                className="w-full"
-                disabled={!filled || !responsavel.trim()}
-                onClick={save}
-              >
-                Salvar aferição
-              </Button>
+              <div className="sticky bottom-2 space-y-2">
+                {saveError ? (
+                  <p className="rounded-lg border border-destructive/50 bg-card p-2 text-center text-xs text-destructive">
+                    {saveError}
+                  </p>
+                ) : null}
+                <Button className="h-12 w-full text-base" onClick={save}>
+                  Salvar aferição
+                </Button>
+              </div>
             </div>
           )}
         </section>
