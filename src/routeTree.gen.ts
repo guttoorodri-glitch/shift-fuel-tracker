@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AfericaoRouteImport } from './routes/afericao'
 import { Route as BackupRouteImport } from './routes/backup'
+import { Route as ChecklistRouteImport } from './routes/checklist'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as ProdutosRouteImport } from './routes/produtos'
@@ -32,6 +33,11 @@ const AfericaoRoute = AfericaoRouteImport.update({
 const BackupRoute = BackupRouteImport.update({
   id: '/backup',
   path: '/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChecklistRoute = ChecklistRouteImport.update({
+  id: '/checklist',
+  path: '/checklist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/afericao': typeof AfericaoRoute
   '/backup': typeof BackupRoute
+  '/checklist': typeof ChecklistRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/afericao': typeof AfericaoRoute
   '/backup': typeof BackupRoute
+  '/checklist': typeof ChecklistRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/afericao': typeof AfericaoRoute
   '/backup': typeof BackupRoute
+  '/checklist': typeof ChecklistRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escala': typeof EscalaRoute
   '/produtos': typeof ProdutosRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/afericao'
     | '/backup'
+    | '/checklist'
     | '/configuracoes'
     | '/escala'
     | '/produtos'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/afericao'
     | '/backup'
+    | '/checklist'
     | '/configuracoes'
     | '/escala'
     | '/produtos'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/afericao'
     | '/backup'
+    | '/checklist'
     | '/configuracoes'
     | '/escala'
     | '/produtos'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AfericaoRoute: typeof AfericaoRoute
   BackupRoute: typeof BackupRoute
+  ChecklistRoute: typeof ChecklistRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   EscalaRoute: typeof EscalaRoute
   ProdutosRoute: typeof ProdutosRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/backup'
       fullPath: '/backup'
       preLoaderRoute: typeof BackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checklist': {
+      id: '/checklist'
+      path: '/checklist'
+      fullPath: '/checklist'
+      preLoaderRoute: typeof ChecklistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AfericaoRoute: AfericaoRoute,
   BackupRoute: BackupRoute,
+  ChecklistRoute: ChecklistRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   EscalaRoute: EscalaRoute,
   ProdutosRoute: ProdutosRoute,
