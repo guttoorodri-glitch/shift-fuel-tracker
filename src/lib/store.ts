@@ -60,6 +60,16 @@ export type Task = {
   createdAt: string;
 };
 
+export type ChecklistFrequency = "diario" | "semanal" | "mensal" | "trimestral" | "semestral";
+
+export type ChecklistItem = {
+  id: string;
+  title: string;
+  frequency: ChecklistFrequency;
+  /** Indica exigência geral ou ponto condicionado à licença/regra local */
+  requirement: "obrigatorio" | "condicional" | "recomendado";
+};
+
 /** Bico de abastecimento */
 export type Nozzle = {
   id: string;
@@ -138,6 +148,10 @@ export type AppState = {
   calibrations?: Calibration[];
   /** Recebimentos de combustível */
   deliveries?: Delivery[];
+  /** Verificações operacionais e de conformidade do gerente */
+  checklistItems?: ChecklistItem[];
+  /** Último ciclo concluído por item (dia, semana, mês, trimestre ou semestre) */
+  checklistChecks?: Record<string, string>;
 };
 
 
@@ -179,6 +193,49 @@ export function defaultNozzles(): Nozzle[] {
   }));
 }
 
+export function defaultChecklistItems(): ChecklistItem[] {
+  const items: Array<Omit<ChecklistItem, "id">> = [
+    { frequency: "diario", requirement: "obrigatorio", title: "Escriturar o Livro de Movimentação de Combustíveis (LMC) com compras, vendas e estoque por produto" },
+    { frequency: "diario", requirement: "obrigatorio", title: "Medir fisicamente o estoque dos tanques e comparar com o estoque contábil" },
+    { frequency: "diario", requirement: "obrigatorio", title: "Conferir se os preços estão visíveis e iguais no totem, bombas e sistema de caixa" },
+    { frequency: "diario", requirement: "obrigatorio", title: "Verificar uso dos EPIs e cumprimento das regras de segurança na pista" },
+    { frequency: "diario", requirement: "recomendado", title: "Inspecionar bicos, mangueiras e bombas para identificar vazamentos, gotejamento ou avarias" },
+    { frequency: "diario", requirement: "recomendado", title: "Conferir limpeza da pista, sinalização, iluminação, extintores e saídas desobstruídas" },
+    { frequency: "diario", requirement: "recomendado", title: "Conferir fechamento dos turnos, caixa e vendas por forma de pagamento" },
+    { frequency: "diario", requirement: "recomendado", title: "Verificar funcionamento das câmeras, alarmes e controles de acesso" },
+
+    { frequency: "semanal", requirement: "obrigatorio", title: "Verificar a integridade dos lacres e selos do Inmetro nas bombas medidoras" },
+    { frequency: "semanal", requirement: "obrigatorio", title: "Conferir validade, acesso e sinalização dos extintores conforme o plano de segurança" },
+    { frequency: "semanal", requirement: "recomendado", title: "Auditar volume vendido, compras e estoque do LMC para investigar divergências" },
+    { frequency: "semanal", requirement: "recomendado", title: "Inspecionar canaletas e caixa separadora de água e óleo contra acúmulo, entupimento ou transbordo" },
+    { frequency: "semanal", requirement: "recomendado", title: "Inspecionar cobertura da pista e sistemas de contenção ou recuperação de vapores existentes" },
+    { frequency: "semanal", requirement: "recomendado", title: "Realizar conversa de segurança e revisar procedimentos operacionais com a equipe" },
+    { frequency: "semanal", requirement: "recomendado", title: "Conferir estoque e validade de produtos da loja, lubrificantes e materiais de consumo" },
+
+    { frequency: "mensal", requirement: "obrigatorio", title: "Conferir obrigações de movimentação e os envios exigidos pela ANP dentro do prazo aplicável" },
+    { frequency: "mensal", requirement: "obrigatorio", title: "Revisar vencimentos de alvará, licença ambiental, AVCB e demais certificados do posto" },
+    { frequency: "mensal", requirement: "obrigatorio", title: "Conferir validade dos treinamentos obrigatórios, incluindo NR-20 e brigada de incêndio" },
+    { frequency: "mensal", requirement: "recomendado", title: "Revisar manutenção preventiva de bombas, tanques, filtros e equipamentos elétricos" },
+    { frequency: "mensal", requirement: "recomendado", title: "Analisar margem por combustível, despesas, perdas, inadimplência e resultados do mês" },
+    { frequency: "mensal", requirement: "recomendado", title: "Avaliar desempenho da equipe e necessidades de treinamento" },
+    { frequency: "mensal", requirement: "recomendado", title: "Testar gerador, nobreak e sistemas de emergência existentes" },
+    { frequency: "mensal", requirement: "recomendado", title: "Organizar notas, laudos, certificados e documentos para pronta apresentação em fiscalização" },
+
+    { frequency: "trimestral", requirement: "condicional", title: "Realizar monitoramento dos poços ambientais quando exigido pela licença ambiental" },
+    { frequency: "trimestral", requirement: "condicional", title: "Verificar sensores e sistemas automáticos de detecção de vazamentos instalados" },
+    { frequency: "trimestral", requirement: "recomendado", title: "Executar auditoria interna de documentação, LMC, preços, lacres, sinalização e identidade da bandeira" },
+    { frequency: "trimestral", requirement: "recomendado", title: "Revisar contratos de manutenção de bombas, tanques e instalações elétricas" },
+    { frequency: "trimestral", requirement: "recomendado", title: "Realizar simulado de emergência com cenário de vazamento ou princípio de incêndio" },
+
+    { frequency: "semestral", requirement: "condicional", title: "Confirmar a verificação metrológica das bombas no prazo definido pelo Inmetro/IPEM local" },
+    { frequency: "semestral", requirement: "condicional", title: "Realizar teste de estanqueidade de tanques e tubulações no prazo da licença e das normas aplicáveis" },
+    { frequency: "semestral", requirement: "condicional", title: "Revisar laudos elétricos, SPDA e sistema de combate a incêndio exigidos pelos órgãos locais" },
+    { frequency: "semestral", requirement: "recomendado", title: "Revisar o plano de gerenciamento de riscos e o plano de emergência ambiental" },
+    { frequency: "semestral", requirement: "recomendado", title: "Auditar segurança patrimonial, câmeras, alarmes, acessos e apólices de seguro" },
+  ];
+  return items.map((item, index) => ({ ...item, id: `check-${index + 1}` }));
+}
+
 const defaultState: AppState = {
 
   shifts: 3,
@@ -204,6 +261,8 @@ const defaultState: AppState = {
   nozzles: defaultNozzles(),
   calibrations: [],
   deliveries: [],
+  checklistItems: defaultChecklistItems(),
+  checklistChecks: {},
 };
 
 
@@ -469,6 +528,41 @@ export const actions = {
   removeTask: (id: string) =>
     update((s) => ({ ...s, tasks: (s.tasks ?? []).filter((t) => t.id !== id) })),
 
+  /* ---------- check list gerencial ---------- */
+
+  addChecklistItem: (item: Omit<ChecklistItem, "id">) =>
+    update((s) => ({
+      ...s,
+      checklistItems: [...(s.checklistItems ?? []), { ...item, id: uid() }],
+    })),
+
+  updateChecklistItem: (id: string, patch: Partial<ChecklistItem>) =>
+    update((s) => ({
+      ...s,
+      checklistItems: (s.checklistItems ?? []).map((item) =>
+        item.id === id ? { ...item, ...patch } : item,
+      ),
+    })),
+
+  removeChecklistItem: (id: string) =>
+    update((s) => {
+      const checks = { ...(s.checklistChecks ?? {}) };
+      delete checks[id];
+      return {
+        ...s,
+        checklistItems: (s.checklistItems ?? []).filter((item) => item.id !== id),
+        checklistChecks: checks,
+      };
+    }),
+
+  toggleChecklistItem: (id: string, cycleKey: string) =>
+    update((s) => {
+      const checks = { ...(s.checklistChecks ?? {}) };
+      if (checks[id] === cycleKey) delete checks[id];
+      else checks[id] = cycleKey;
+      return { ...s, checklistChecks: checks };
+    }),
+
   /** Restauração de fábrica: zera todos os dados do aplicativo */
   resetFactory: () => update(() => structuredClone(defaultState)),
 };
@@ -503,6 +597,8 @@ export function importState(raw: string): boolean {
     nozzles: data.nozzles ?? [],
     calibrations: data.calibrations ?? [],
     deliveries: data.deliveries ?? [],
+    checklistItems: data.checklistItems ?? defaultChecklistItems(),
+    checklistChecks: data.checklistChecks ?? {},
   }));
 
   return true;
