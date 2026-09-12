@@ -11,6 +11,7 @@ import {
   TruckIcon,
   Moon,
   Sun,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -29,6 +30,7 @@ const rowOne: NavItem[] = [
 const rowTwo: NavItem[] = [
   { to: "/escala", label: "Escala", icon: CalendarDays, color: "var(--folga)" },
   { to: "/tarefas", label: "Tarefas", icon: KanbanSquare, color: "var(--falta)" },
+  { to: "/checklist", label: "Check list", icon: ClipboardCheck, color: "var(--aprovado)" },
   { to: "/backup", label: "Backup", icon: DatabaseBackup, color: "var(--chart-1)" },
   { to: "/configuracoes", label: "Ajustes", icon: Settings, color: "var(--muted-foreground)" },
 ];
