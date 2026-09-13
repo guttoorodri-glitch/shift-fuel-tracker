@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarRange } from "lucide-react";
 import {
   Bar,
@@ -51,9 +51,16 @@ export const Route = createFileRoute("/relatorios")({
 
 function RelatoriosPage() {
   const state = useAppState();
-  const today = todayISO();
-  const [from, setFrom] = useState(monthStartISO(today));
-  const [to, setTo] = useState(today);
+  const [today, setToday] = useState("1970-01-01");
+  const [from, setFrom] = useState("1970-01-01");
+  const [to, setTo] = useState("1970-01-01");
+
+  useEffect(() => {
+    const current = todayISO();
+    setToday(current);
+    setFrom(monthStartISO(current));
+    setTo(current);
+  }, []);
 
   const monthTotal = totalInRange(state, monthStartISO(today), today);
   const rangeTotal = totalInRange(state, from, to);

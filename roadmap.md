@@ -1,5 +1,5 @@
-- [ ] Renomear “Resumo do dia” para “Estoque e vendas”.
-- [ ] Criar PDF individual do recebimento salvo.
-- [ ] Compartilhar o PDF do histórico pelo WhatsApp e permitir download.
-- [ ] Corrigir divergência de data na hidratação de Relatórios.
-- [ ] Validar a interface móvel e o PDF gerado.
+- [x] Renomear “Resumo do dia” para “Estoque e vendas”.
+- [x] Criar PDF individual do recebimento salvo.
+- [x] Compartilhar o PDF do histórico pelo WhatsApp e permitir download.
+- [x] Corrigir divergência de data na hidratação de Relatórios.
+- [x] Validar a interface móvel e o PDF gerado.

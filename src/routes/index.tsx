@@ -162,7 +162,7 @@ function TurnosPage() {
 
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="font-display text-lg text-foreground">Resumo do dia</h2>
+          <h2 className="font-display text-lg text-foreground">Estoque e vendas</h2>
           <div className="flex rounded-lg border border-border p-0.5">
             <Button
               size="sm"

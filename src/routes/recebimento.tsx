@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Plus, Trash2, Truck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FileDown, Plus, Share2, Trash2, Truck } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,9 @@ import {
   todayISO,
   useAppState,
   type DeliveryItem,
+  type Delivery,
 } from "@/lib/store";
+import { buildRecebimentoPdf, recebimentoFileName } from "@/lib/recebimento-pdf";
 
 export const Route = createFileRoute("/recebimento")({
   head: () => ({
@@ -67,6 +69,105 @@ const emptyDraft = (fuel: string): Draft => ({
   etanolPct: "",
   fulgor: "",
 });
+
+function DeliveryExportButtons({ delivery }: { delivery: Delivery }) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const fileRef = useRef<File | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void buildRecebimentoPdf(delivery)
+      .then((blob) => {
+        if (active) {
+          fileRef.current = new File([blob], recebimentoFileName(delivery), {
+            type: "application/pdf",
+          });
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [delivery]);
+
+  const download = async () => {
+    setBusy(true);
+    try {
+      const blob = await buildRecebimentoPdf(delivery);
+      const name = recebimentoFileName(delivery);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = name;
+      anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus(`PDF salvo como ${name}.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const share = () => {
+    const nav = navigator as Navigator & { canShare?: (data: { files?: File[] }) => boolean };
+    const cached = fileRef.current;
+    if (cached && nav.share && nav.canShare?.({ files: [cached] })) {
+      setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+      void nav.share({ files: [cached] }).catch(() => setStatus(null));
+      return;
+    }
+
+    void (async () => {
+      setBusy(true);
+      try {
+        const blob = await buildRecebimentoPdf(delivery);
+        const name = recebimentoFileName(delivery);
+        const file = new File([blob], name, { type: "application/pdf" });
+        fileRef.current = file;
+        if (nav.share && nav.canShare?.({ files: [file] })) {
+          await nav.share({ files: [file] });
+          setStatus("Escolha o WhatsApp na tela de compartilhamento.");
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = name;
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(
+            `Recebimento do Posto 10 — NF ${delivery.nf}, ${formatBR(delivery.date)}. Anexe o arquivo ${name} salvo no aparelho.`,
+          )}`,
+          "_blank",
+        );
+        setStatus(`O PDF ${name} foi salvo — anexe-o na conversa do WhatsApp.`);
+      } catch {
+        setStatus("Não foi possível compartilhar o PDF. Tente salvar o arquivo.");
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
+
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <Button size="sm" disabled={busy} onClick={share}>
+          <Share2 className="size-4" /> WhatsApp
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => void download()}>
+          <FileDown className="size-4" /> Salvar PDF
+        </Button>
+      </div>
+      {status ? (
+        <p className="rounded-lg border border-primary/40 bg-secondary p-2 text-xs text-foreground">
+          {status}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function RecebimentoPage() {
   const s = useAppState();
@@ -309,6 +410,7 @@ function RecebimentoPage() {
                   );
                 })}
               </div>
+              <DeliveryExportButtons delivery={d} />
             </div>
           ))
         )}
