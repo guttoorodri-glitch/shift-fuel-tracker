@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileDown, FileText, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +24,19 @@ const LABELS: Record<Filtro, string> = {
 
 export function ExportPdfSection() {
   const state = useAppState();
-  const today = todayISO();
+  const [today, setToday] = useState("1970-01-01");
   const [filtro, setFiltro] = useState<Filtro>("diario");
-  const [from, setFrom] = useState(monthStartISO(today));
-  const [to, setTo] = useState(today);
+  const [from, setFrom] = useState("1970-01-01");
+  const [to, setTo] = useState("1970-01-01");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const current = todayISO();
+    setToday(current);
+    setFrom(monthStartISO(current));
+    setTo(current);
+  }, []);
 
   const range = (): { from: string; to: string } => {
     if (filtro === "diario") return { from: today, to: today };
