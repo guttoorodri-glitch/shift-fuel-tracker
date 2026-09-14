@@ -248,7 +248,18 @@ export function defaultChecklistItems(): ChecklistItem[] {
   return items.map((item, index) => ({ ...item, id: `check-${index + 1}` }));
 }
 
+export const emptyCompany: Company = {
+  name: "Posto 10",
+  address: "",
+  bairro: "",
+  cnpj: "",
+  ie: "",
+  phone: "",
+};
+
 const defaultState: AppState = {
+  company: { ...emptyCompany },
+
 
   shifts: 3,
   tanks: [
@@ -417,6 +428,9 @@ export const actions = {
     })),
 
   setSundayOff: (on: boolean) => update((s) => ({ ...s, sundayOff: on })),
+
+  setCompany: (patch: Partial<Company>) =>
+    update((s) => ({ ...s, company: { ...emptyCompany, ...(s.company ?? {}), ...patch } })),
 
   /* ---------- produtos ---------- */
 
@@ -605,6 +619,7 @@ export function importState(raw: string): boolean {
     restocks: data.restocks ?? [],
     counts: data.counts ?? [],
     sundayOff: data.sundayOff ?? false,
+    company: { ...emptyCompany, ...(data.company ?? {}) },
     tasks: data.tasks ?? [],
     nozzles: data.nozzles ?? [],
     calibrations: data.calibrations ?? [],
