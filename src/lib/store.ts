@@ -124,7 +124,19 @@ export type Delivery = {
   createdAt: string;
 };
 
+/** Dados cadastrais do posto usados no cabeçalho dos PDFs */
+export type Company = {
+  name: string;
+  address: string;
+  bairro: string;
+  cnpj: string;
+  ie: string;
+  phone: string;
+};
+
 export type AppState = {
+  /** Cadastro do posto */
+  company?: Company;
   tanks: Tank[];
   shifts: number;
   attendants: Attendant[];
