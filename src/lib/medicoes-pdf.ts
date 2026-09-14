@@ -1,5 +1,6 @@
 import type { AppState } from "@/lib/store";
 import { estimatedLevel, fmtL, formatBR, totalSalesOfDay, weekdayBR } from "@/lib/store";
+import { drawPdfFooter, drawPdfHeader } from "@/lib/pdf-header";
 
 function datesInRange(s: AppState, from: string, to: string) {
   const keys = new Set([...Object.keys(s.openings), ...Object.keys(s.sales)]);
@@ -37,15 +38,7 @@ export async function buildMedicoesPdf(
     doc.text(t, x, y);
   };
 
-  doc.setFillColor(24, 24, 27);
-  doc.rect(0, 0, pageW, 56, "F");
-  doc.setTextColor(255, 255, 255);
-  y = 26;
-  text("POSTO 10", margin, 16, true);
-  y = 44;
-  text("Relatório de medições e vendas", margin, 10);
-  doc.setTextColor(0, 0, 0);
-  y = 84;
+  y = drawPdfHeader(doc, state, "Relatório de medições e vendas");
   text(`Filtro: ${periodLabel}`, margin, 11, true);
   nl();
   text(`Período: ${formatBR(from)} a ${formatBR(to)}`, margin, 10);
