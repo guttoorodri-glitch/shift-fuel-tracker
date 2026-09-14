@@ -61,7 +61,7 @@ export async function buildEscalaPdf(state: AppState, month: string): Promise<Bl
       doc.setFont("helvetica", "normal");
       doc.setFontSize(6);
       doc.setTextColor(120);
-      doc.text(weekdayBR(d), x + cellW / 2, y + 12, { align: "center" });
+      doc.text(weekdayBR(d) ?? "", x + cellW / 2, y + 12, { align: "center" });
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       doc.setTextColor(0);
