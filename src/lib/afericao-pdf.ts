@@ -1,5 +1,6 @@
 import type { AppState, Calibration } from "@/lib/store";
 import { calibrationApproved, formatBR } from "@/lib/store";
+import { companyName, drawPdfHeader } from "@/lib/pdf-header";
 
 export function afericaoFileName(c: Calibration) {
   return `afericao-${c.date}.pdf`;
