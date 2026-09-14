@@ -1,18 +1,22 @@
-import type { Delivery } from "@/lib/store";
+import type { AppState, Delivery } from "@/lib/store";
 import { fmtL, formatBR } from "@/lib/store";
+import { drawPdfFooter, drawPdfHeader } from "@/lib/pdf-header";
 
 export function recebimentoFileName(delivery: Delivery) {
   const nf = delivery.nf.replace(/[^a-zA-Z0-9_-]+/g, "-");
   return `recebimento-${delivery.date}-nf-${nf || "sem-numero"}.pdf`;
 }
 
-export async function buildRecebimentoPdf(delivery: Delivery): Promise<Blob> {
+export async function buildRecebimentoPdf(
+  delivery: Delivery,
+  state?: Pick<AppState, "company">,
+): Promise<Blob> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 36;
-  let y = 36;
+  let y = drawPdfHeader(doc, state, "Relatório de recebimento de combustíveis");
 
   const text = (value: string, x: number, size = 10, bold = false) => {
     doc.setFont("helvetica", bold ? "bold" : "normal");
@@ -27,16 +31,6 @@ export async function buildRecebimentoPdf(delivery: Delivery): Promise<Blob> {
       y = margin;
     }
   };
-
-  doc.setFillColor(24, 24, 27);
-  doc.rect(0, 0, pageW, 56, "F");
-  doc.setTextColor(255, 255, 255);
-  y = 26;
-  text("POSTO 10", margin, 16, true);
-  y = 44;
-  text("Relatório de recebimento de combustíveis", margin, 10);
-  doc.setTextColor(0, 0, 0);
-  y = 84;
 
   text(`Data: ${formatBR(delivery.date)}`, margin, 11, true);
   next(17);
@@ -87,14 +81,7 @@ export async function buildRecebimentoPdf(delivery: Delivery): Promise<Blob> {
   doc.line(margin, y - 8, pageW - margin, y - 8);
   text(`TOTAL RECEBIDO: ${fmtL(total)}`, margin, 12, true);
 
-  const pages = doc.getNumberOfPages();
-  for (let page = 1; page <= pages; page += 1) {
-    doc.setPage(page);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(130);
-    doc.text(`Posto 10 · NF ${delivery.nf} · página ${page} de ${pages}`, margin, pageH - 18);
-  }
+  drawPdfFooter(doc, state, `NF ${delivery.nf}`);
 
   return doc.output("blob");
 }
