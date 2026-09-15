@@ -137,7 +137,7 @@ export async function buildAfericaoPdf(
   doc.setFontSize(8);
   doc.setTextColor(130);
   doc.text(
-    `Posto 10 · aferição de ${formatBR(calibration.date)}`,
+    `${companyName(state)} · aferição de ${formatBR(calibration.date)}`,
     pageW / 2,
     lineY + 26,
     { align: "center" },
