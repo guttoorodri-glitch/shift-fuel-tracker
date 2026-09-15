@@ -31,16 +31,9 @@ export async function buildAfericaoPdf(
     doc.text(t, x, y);
   };
 
-  // Cabeçalho
-  doc.setFillColor(24, 24, 27);
-  doc.rect(0, 0, pageW, 56, "F");
-  doc.setTextColor(255, 255, 255);
-  y = 26;
-  text("POSTO 10", margin, 16, true);
-  y = 44;
-  text("Relatório de aferição de bicos", margin, 10);
-  doc.setTextColor(0, 0, 0);
-  y = 84;
+  // Cabeçalho com os dados cadastrais do posto
+  y = drawPdfHeader(doc, state, "Relatório de aferição de bicos");
+
 
   text(`Data: ${formatBR(calibration.date)}`, margin, 11, true);
   nl(16);
@@ -144,7 +137,7 @@ export async function buildAfericaoPdf(
   doc.setFontSize(8);
   doc.setTextColor(130);
   doc.text(
-    `Posto 10 · aferição de ${formatBR(calibration.date)}`,
+    `${companyName(state)} · aferição de ${formatBR(calibration.date)}`,
     pageW / 2,
     lineY + 26,
     { align: "center" },

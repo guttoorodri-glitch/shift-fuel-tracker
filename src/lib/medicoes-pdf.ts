@@ -121,13 +121,8 @@ export async function buildMedicoesPdf(
     text(`TOTAL GERAL: ${fmtL(geral)}`, colTank, 11, true);
   }
 
-  const pages = doc.getNumberOfPages();
-  for (let p = 1; p <= pages; p++) {
-    doc.setPage(p);
-    doc.setFontSize(8);
-    doc.setTextColor(130);
-    doc.text(`Posto 10 · página ${p} de ${pages}`, margin, pageH - 18);
-  }
+  drawPdfFooter(doc, state, `${formatBR(from)} a ${formatBR(to)}`);
+
 
   return doc.output("blob");
 }
