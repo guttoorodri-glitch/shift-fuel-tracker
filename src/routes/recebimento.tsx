@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { FileDown, Plus, Share2, Trash2, Truck } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,12 @@ import {
   fuelColor,
   todayISO,
   useAppState,
+  type AppState,
   type DeliveryItem,
   type Delivery,
 } from "@/lib/store";
 import { buildRecebimentoPdf, recebimentoFileName } from "@/lib/recebimento-pdf";
+import { downloadBlob, sharePdf } from "@/lib/share-pdf";
 
 export const Route = createFileRoute("/recebimento")({
   head: () => ({
