@@ -52,6 +52,7 @@ const isDiesel = (fuel: string) => fuel.toLowerCase().includes("diesel");
 
 type Draft = {
   fuel: string;
+  tankId: string;
   qty: string;
   temperatura: string;
   densidade: string;
@@ -61,8 +62,34 @@ type Draft = {
   fulgor: string;
 };
 
-const emptyDraft = (fuel: string): Draft => ({
+const analysisFor = (draft: Draft) => {
+  const fuel = draft.fuel.toLowerCase();
+  const density = parse(draft.densidade20 ?? draft.densidade);
+  const flash = parse(draft.fulgor);
+  const alcohol = parse(draft.teorAlcoolico);
+  const issues: string[] = [];
+  if (density === undefined) issues.push("densidade não informada");
+  if (fuel.includes("etanol") && density !== undefined && (density < 805 || density > 811)) {
+    issues.push("densidade do etanol fora de 805 a 811 kg/m³");
+  }
+  if (fuel.includes("etanol") && alcohol === undefined) issues.push("teor alcoólico não informado");
+  if (fuel.includes("diesel") && density !== undefined) {
+    const minimum = fuel.includes("s10") ? 815 : 815;
+    const maximum = fuel.includes("s10") ? 850 : 865;
+    if (density < minimum || density > maximum)
+      issues.push(`densidade fora de ${minimum} a ${maximum} kg/m³`);
+  }
+  if (fuel.includes("diesel") && flash === undefined) {
+    issues.push("ponto de fulgor não informado");
+  } else if (fuel.includes("diesel") && flash < 38) {
+    issues.push("ponto de fulgor inferior a 38 °C");
+  }
+  return { authorized: issues.length === 0, issues };
+};
+
+const emptyDraft = (tankId: string, fuel: string): Draft => ({
   fuel,
+  tankId,
   qty: "",
   temperatura: "",
   densidade: "",
@@ -72,13 +99,7 @@ const emptyDraft = (fuel: string): Draft => ({
   fulgor: "",
 });
 
-function DeliveryExportButtons({
-  delivery,
-  state,
-}: {
-  delivery: Delivery;
-  state: AppState;
-}) {
+function DeliveryExportButtons({ delivery, state }: { delivery: Delivery; state: AppState }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -103,11 +124,7 @@ function DeliveryExportButtons({
       const blob = await buildRecebimentoPdf(delivery, state);
       const name = recebimentoFileName(delivery);
       setStatus(
-        await sharePdf(
-          blob,
-          name,
-          `Recebimento — NF ${delivery.nf}, ${formatBR(delivery.date)}.`,
-        ),
+        await sharePdf(blob, name, `Recebimento — NF ${delivery.nf}, ${formatBR(delivery.date)}.`),
       );
     } catch {
       setStatus("Não foi possível compartilhar o PDF. Toque em Salvar PDF.");
@@ -137,13 +154,14 @@ function DeliveryExportButtons({
 
 function RecebimentoPage() {
   const s = useAppState();
-  const fuels = useMemo(() => s.tanks.map((t) => t.name), [s.tanks]);
-  const firstFuel = fuels[0] ?? "Gasolina Comum";
-
   const [date, setDate] = useState(todayISO());
   const [distribuidora, setDistribuidora] = useState("");
   const [nf, setNf] = useState("");
-  const [drafts, setDrafts] = useState<Draft[]>([emptyDraft(firstFuel)]);
+  const [motorista, setMotorista] = useState("");
+  const [rgMotorista, setRgMotorista] = useState("");
+  const [placaCaminhao, setPlacaCaminhao] = useState("");
+  const [responsavelAnalise, setResponsavelAnalise] = useState("");
+  const [drafts, setDrafts] = useState<Draft[]>([emptyDraft("", "")]);
 
   const setDraft = (i: number, patch: Partial<Draft>) =>
     setDrafts((ds) => ds.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
@@ -153,13 +171,19 @@ function RecebimentoPage() {
   const canSave =
     distribuidora.trim() !== "" &&
     nf.trim() !== "" &&
-    drafts.some((d) => (parse(d.qty) ?? 0) > 0);
+    motorista.trim() !== "" &&
+    rgMotorista.trim() !== "" &&
+    placaCaminhao.trim() !== "" &&
+    responsavelAnalise.trim() !== "" &&
+    drafts.every((d) => d.tankId !== "") &&
+    drafts.every((d) => (parse(d.qty) ?? 0) > 0);
 
   const save = () => {
     const items: DeliveryItem[] = drafts
       .filter((d) => (parse(d.qty) ?? 0) > 0)
       .map((d) => ({
         fuel: d.fuel,
+        tankId: d.tankId,
         qty: parse(d.qty) ?? 0,
         temperatura: parse(d.temperatura),
         densidade: parse(d.densidade),
@@ -169,16 +193,25 @@ function RecebimentoPage() {
         fulgor: isDiesel(d.fuel) ? parse(d.fulgor) : undefined,
       }));
     if (items.length === 0) return;
-    actions.addDelivery({ date, distribuidora: distribuidora.trim(), nf: nf.trim(), items });
+    actions.addDelivery({
+      date,
+      distribuidora: distribuidora.trim(),
+      nf: nf.trim(),
+      motorista: motorista.trim(),
+      rgMotorista: rgMotorista.trim(),
+      placaCaminhao: placaCaminhao.trim(),
+      responsavelAnalise: responsavelAnalise.trim(),
+      items,
+    });
     setDistribuidora("");
     setNf("");
-    setDrafts([emptyDraft(firstFuel)]);
+    setDrafts([emptyDraft("", "")]);
   };
 
   const deliveries = s.deliveries ?? [];
 
   return (
-    <AppShell title="Recebimento" subtitle="Notas fiscais e análise da descarga">
+    <AppShell title="Recebimento Combustível" subtitle="Notas fiscais e análise da descarga">
       <section className="rounded-2xl border border-border bg-card p-4">
         <h2 className="font-display text-xl tracking-wide text-foreground">Nova nota fiscal</h2>
 
@@ -189,7 +222,12 @@ function RecebimentoPage() {
           </div>
           <div>
             <Label htmlFor="nf">Número da NF</Label>
-            <Input id="nf" value={nf} onChange={(e) => setNf(e.target.value)} placeholder="000123" />
+            <Input
+              id="nf"
+              value={nf}
+              onChange={(e) => setNf(e.target.value)}
+              placeholder="000123"
+            />
           </div>
           <div className="col-span-2">
             <Label htmlFor="dist">Distribuidora</Label>
@@ -198,6 +236,25 @@ function RecebimentoPage() {
               value={distribuidora}
               onChange={(e) => setDistribuidora(e.target.value)}
               placeholder="Ex.: Ipiranga"
+            />
+          </div>
+          <div>
+            <Label>Motorista</Label>
+            <Input value={motorista} onChange={(e) => setMotorista(e.target.value)} />
+          </div>
+          <div>
+            <Label>RG do motorista</Label>
+            <Input value={rgMotorista} onChange={(e) => setRgMotorista(e.target.value)} />
+          </div>
+          <div>
+            <Label>Placa do caminhão</Label>
+            <Input value={placaCaminhao} onChange={(e) => setPlacaCaminhao(e.target.value)} />
+          </div>
+          <div>
+            <Label>Responsável pela análise</Label>
+            <Input
+              value={responsavelAnalise}
+              onChange={(e) => setResponsavelAnalise(e.target.value)}
             />
           </div>
         </div>
@@ -213,13 +270,18 @@ function RecebimentoPage() {
               >
                 <div className="flex items-center gap-2">
                   <select
-                    value={d.fuel}
-                    onChange={(e) => setDraft(i, { fuel: e.target.value })}
+                    value={d.tankId}
+                    onChange={(e) => {
+                      const tank = s.tanks.find((item) => item.id === e.target.value);
+                      if (tank) setDraft(i, { tankId: tank.id, fuel: tank.name });
+                    }}
                     className="h-9 flex-1 rounded-md border border-input bg-card px-2 text-sm text-foreground"
+                    required
                   >
-                    {fuels.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
+                    <option value="">Selecione o tanque de destino</option>
+                    {s.tanks.map((tank, index) => (
+                      <option key={tank.id} value={tank.id}>
+                        Tanque {index + 1} — {tank.name}
                       </option>
                     ))}
                   </select>
@@ -236,6 +298,9 @@ function RecebimentoPage() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="col-span-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs text-emerald-800">
+                    Aspecto: <strong>LÍMPIDO, ISENTO DE IMPUREZAS</strong>
+                  </div>
                   <div>
                     <Label>Quantidade (L)</Label>
                     <Input
@@ -299,16 +364,23 @@ function RecebimentoPage() {
                     </div>
                   ) : null}
                 </div>
+                {d.fuel ? (
+                  <p
+                    className={`mt-3 text-sm font-bold ${analysisFor(d).authorized ? "text-emerald-700" : "text-red-700"}`}
+                  >
+                    {analysisFor(d).authorized ? "DESCARGA AUTORIZADA" : "DESCARGA NÃO AUTORIZADA"}
+                    {analysisFor(d).issues.length > 0
+                      ? ` — ${analysisFor(d).issues.join("; ")}`
+                      : ""}
+                  </p>
+                ) : null}
               </div>
             );
           })}
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setDrafts((ds) => [...ds, emptyDraft(firstFuel)])}
-          >
+          <Button variant="outline" onClick={() => setDrafts((ds) => [...ds, emptyDraft("", "")])}>
             <Plus className="mr-1 size-4" /> Combustível
           </Button>
           <p className="text-sm text-muted-foreground">Total: {fmtL(total)}</p>
@@ -317,6 +389,26 @@ function RecebimentoPage() {
         <Button className="mt-3 w-full" disabled={!canSave} onClick={save}>
           <Truck className="mr-2 size-4" /> Salvar recebimento
         </Button>
+        {!drafts.every((draft) => draft.tankId !== "") ? (
+          <p className="mt-2 text-xs text-destructive">
+            Selecione o tanque de destino em cada item antes de salvar o recebimento.
+          </p>
+        ) : null}
+        {motorista.trim() === "" ||
+        rgMotorista.trim() === "" ||
+        placaCaminhao.trim() === "" ||
+        responsavelAnalise.trim() === "" ? (
+          <p className="mt-2 text-xs text-destructive">
+            Informe motorista, RG do motorista, placa do caminhão e responsável pela análise antes
+            de salvar.
+          </p>
+        ) : null}
+        {drafts.every((draft) => draft.tankId !== "") &&
+        !drafts.every((draft) => (parse(draft.qty) ?? 0) > 0) ? (
+          <p className="mt-2 text-xs text-destructive">
+            Informe a quantidade recebida em litros em cada item antes de salvar.
+          </p>
+        ) : null}
       </section>
 
       <section className="mt-5 space-y-3">

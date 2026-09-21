@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -11,6 +12,14 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { planAllows, useSubscription } from "@/hooks/useSubscription";
+import {
+  BlockedScreen,
+  GraceModal,
+  LoginScreen,
+  PaymentScreen,
+  SubscriptionBanner,
+} from "@/hooks/subscription-ui";
 
 function NotFoundComponent() {
   return (
@@ -134,8 +143,34 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <AppAccessGate />
     </QueryClientProvider>
+  );
+}
+
+function AppAccessGate() {
+  const subscription = useSubscription();
+  const location = useLocation();
+
+  if (subscription.authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-sm text-white">
+        Carregando acesso...
+      </div>
+    );
+  }
+  if (!subscription.isAuthenticated) return <LoginScreen subscription={subscription} />;
+  if (subscription.needsPayment) return <PaymentScreen subscription={subscription} />;
+  if (subscription.isBlocked) return <BlockedScreen subscription={subscription} />;
+  if (!subscription.isAdmin && !planAllows(subscription.subscriptionPlan, location.pathname)) {
+    return <PaymentScreen subscription={subscription} />;
+  }
+
+  return (
+    <>
+      <SubscriptionBanner subscription={subscription} />
+      <Outlet />
+      <GraceModal subscription={subscription} />
+    </>
   );
 }

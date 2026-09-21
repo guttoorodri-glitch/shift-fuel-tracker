@@ -99,7 +99,7 @@ function RelatoriosPage() {
   ];
 
   return (
-    <AppShell title="Vendas" subtitle="Totais, períodos e gráficos">
+    <AppShell title="Relatório Vendas Combustível" subtitle="Totais, períodos e gráficos">
       <section className="mb-5 rounded-xl border border-border bg-card p-4">
         <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
           Total do mês (desde {formatBR(monthStartISO(today))})
@@ -148,7 +148,7 @@ function RelatoriosPage() {
       </section>
 
       <section className="mb-5 rounded-xl border border-border bg-card p-4">
-        <h2 className="mb-3 font-display text-lg text-foreground">Por combustível</h2>
+        <h2 className="mb-3 font-display text-lg text-foreground">Vendas por tanque</h2>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={byTank} margin={{ top: 4, right: 4, bottom: 4, left: -12 }}>

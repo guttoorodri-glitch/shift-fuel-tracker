@@ -7,10 +7,7 @@ export function recebimentoFileName(delivery: Delivery) {
   return `recebimento-${delivery.date}-nf-${nf || "sem-numero"}.pdf`;
 }
 
-export async function buildRecebimentoPdf(
-  delivery: Delivery,
-  state?: Pick<AppState, "company">,
-): Promise<Blob> {
+export async function buildRecebimentoPdf(delivery: Delivery, state?: AppState): Promise<Blob> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -38,6 +35,14 @@ export async function buildRecebimentoPdf(
   next(17);
   text(`Nota fiscal: ${delivery.nf}`, margin, 11, true);
   next(26);
+  text(`Motorista: ${delivery.motorista || "Não informado"}`, margin, 9);
+  next(14);
+  text(`RG: ${delivery.rgMotorista || "Não informado"}`, margin, 9);
+  next(14);
+  text(`Placa do caminhão: ${delivery.placaCaminhao || "Não informada"}`, margin, 9);
+  next(14);
+  text(`Responsável pela análise: ${delivery.responsavelAnalise || "Não informado"}`, margin, 9);
+  next(24);
 
   const fuelX = margin;
   const qtyX = pageW - margin - 95;
@@ -61,6 +66,8 @@ export async function buildRecebimentoPdf(
     text(item.fuel, fuelX, 10, true);
     text(fmtL(item.qty), qtyX, 10, true);
     next(16);
+    text("Aspecto: LÍMPIDO, ISENTO DE IMPUREZAS", fuelX, 8);
+    next(13);
 
     const analyses = [
       item.temperatura !== undefined ? `Temperatura: ${item.temperatura} °C` : null,
@@ -80,6 +87,23 @@ export async function buildRecebimentoPdf(
   doc.setDrawColor(120);
   doc.line(margin, y - 8, pageW - margin, y - 8);
   text(`TOTAL RECEBIDO: ${fmtL(total)}`, margin, 12, true);
+
+  const hasIncomplete = delivery.items.some((item) => {
+    const fuel = item.fuel.toLowerCase();
+    const density = item.densidade20 ?? item.densidade;
+    return (
+      density === undefined ||
+      (fuel.includes("etanol") && item.teorAlcoolico === undefined) ||
+      (fuel.includes("diesel") && (item.fulgor === undefined || item.fulgor < 38))
+    );
+  });
+  const stamp = hasIncomplete ? "DESCARGA NÃO AUTORIZADA" : "DESCARGA AUTORIZADA";
+  const stampColor: [number, number, number] = hasIncomplete ? [220, 38, 38] : [22, 163, 74];
+  doc.setTextColor(...stampColor);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text(stamp, pageW / 2, y + 28, { align: "center" });
+  doc.setTextColor(0, 0, 0);
 
   drawPdfFooter(doc, state, `NF ${delivery.nf}`);
 

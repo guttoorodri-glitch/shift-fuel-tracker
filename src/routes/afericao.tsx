@@ -39,9 +39,27 @@ export const Route = createFileRoute("/afericao")({
   component: AfericaoPage,
 });
 
-const parse = (v: string) => {
-  const n = Number(v.replace(",", "."));
-  return v.trim() === "" || !Number.isFinite(n) ? undefined : n;
+const sanitizeAfericaoInput = (value: string) => {
+  const sign = value.trimStart().startsWith("-") ? "-" : "";
+  return `${sign}${value.replace(/[^0-9]/g, "")}`;
+};
+
+const parseAfericao = (value: string) => {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === "-") return undefined;
+  const number = Number(trimmed);
+  return Number.isInteger(number) ? number : undefined;
+};
+
+const allowedMessage = (values: number[]) =>
+  `Valor não permitido. Informe um valor entre ${Math.min(...values)} e ${Math.max(...values)}.`;
+
+const isInvalidAfericao = (value: string, allowed: number[]) => {
+  const trimmed = value.trim();
+  if (trimmed === "") return false;
+  const parsed = parseAfericao(trimmed);
+  if (parsed === undefined || allowed.length !== 2) return true;
+  return parsed < Math.min(...allowed) || parsed > Math.max(...allowed);
 };
 
 function Stamp({ approved }: { approved: boolean }) {
@@ -114,9 +132,7 @@ function ExportButtons({ state, calibration }: { state: AppState; calibration: C
     if (cached && nav.share && nav.canShare?.({ files: [cached] })) {
       setStatus("Escolha o WhatsApp na tela de compartilhamento.");
       // Somente o arquivo: com texto junto, o WhatsApp descarta o anexo.
-      nav
-        .share({ files: [cached] })
-        .catch(() => setStatus(null));
+      nav.share({ files: [cached] }).catch(() => setStatus(null));
       return;
     }
 
@@ -177,24 +193,33 @@ function AfericaoPage() {
   const state = useAppState();
   const nozzles = state.nozzles ?? [];
   const calibrations = state.calibrations ?? [];
-  const tankNames = state.tanks.map((t) => t.name);
+  const tanks = state.tanks;
 
-
-  const [tab, setTab] = useState<"aferir" | "bicos" | "historico">("aferir");
+  const [tab, setTab] = useState<"aferir" | "parametros" | "historico">("aferir");
   const [nozzleForm, setNozzleForm] = useState({ name: "", fuel: "" });
+  const [nozzleError, setNozzleError] = useState<string | null>(null);
+  const [negativeParameter, setNegativeParameter] = useState("");
+  const [positiveParameter, setPositiveParameter] = useState("");
+  const [parameterError, setParameterError] = useState<string | null>(null);
 
   const [date, setDate] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [values, setValues] = useState<Record<string, { lenta: string; rapida: string }>>({});
 
   useEffect(() => setDate(todayISO()), []);
+  useEffect(() => {
+    const negative = state.allowedAfericoes.find((value) => value < 0);
+    const positive = state.allowedAfericoes.find((value) => value > 0);
+    setNegativeParameter(negative === undefined ? "" : String(negative));
+    setPositiveParameter(positive === undefined ? "" : String(positive));
+  }, [state.allowedAfericoes]);
 
   const items: CalibrationItem[] = useMemo(
     () =>
       nozzles.map((n) => ({
         nozzleId: n.id,
-        lenta: parse(values[n.id]?.lenta ?? ""),
-        rapida: parse(values[n.id]?.rapida ?? ""),
+        lenta: parseAfericao(values[n.id]?.lenta ?? ""),
+        rapida: parseAfericao(values[n.id]?.rapida ?? ""),
       })),
     [nozzles, values],
   );
@@ -207,12 +232,16 @@ function AfericaoPage() {
     items,
     createdAt: "",
   };
-  const approved = calibrationApproved(preview);
+  const approved = calibrationApproved(preview, state.allowedAfericoes);
 
   const setVal = (id: string, key: "lenta" | "rapida", v: string) =>
     setValues((prev) => ({
       ...prev,
-      [id]: { lenta: prev[id]?.lenta ?? "", rapida: prev[id]?.rapida ?? "", [key]: v },
+      [id]: {
+        lenta: prev[id]?.lenta ?? "",
+        rapida: prev[id]?.rapida ?? "",
+        [key]: sanitizeAfericaoInput(v),
+      },
     }));
 
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -224,6 +253,33 @@ function AfericaoPage() {
     }
     if (!responsavel.trim()) {
       setSaveError("Informe o nome do responsável pela aferição.");
+      return;
+    }
+    if (state.allowedAfericoes.length !== 2) {
+      setSaveError("Configure um parâmetro negativo e outro positivo na aba Parâmetros.");
+      return;
+    }
+    if (
+      nozzles.some(
+        (nozzle) => !tanks.some((tank) => tank.id === nozzle.tankId || tank.name === nozzle.fuel),
+      )
+    ) {
+      setSaveError("Informe o tanque de origem em todos os bicos na aba Parâmetros.");
+      return;
+    }
+    const invalid = Object.values(values).some((value) =>
+      [value.lenta, value.rapida].some((item) => {
+        const trimmed = item.trim();
+        const parsed = parseAfericao(trimmed);
+        if (trimmed === "") return false;
+        if (parsed === undefined || state.allowedAfericoes.length !== 2) return true;
+        const minimum = Math.min(...state.allowedAfericoes);
+        const maximum = Math.max(...state.allowedAfericoes);
+        return parsed < minimum || parsed > maximum;
+      }),
+    );
+    if (invalid) {
+      setSaveError(allowedMessage(state.allowedAfericoes));
       return;
     }
     if (!filled) {
@@ -250,7 +306,7 @@ function AfericaoPage() {
         {(
           [
             ["aferir", "Aferir"],
-            ["bicos", "Bicos"],
+            ["parametros", "Parâmetros"],
             ["historico", "Histórico"],
           ] as const
         ).map(([id, label]) => (
@@ -267,7 +323,100 @@ function AfericaoPage() {
         ))}
       </div>
 
-      {tab === "bicos" ? (
+      {tab === "parametros" ? (
+        <section className="space-y-4">
+          <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+            <div>
+              <p className="font-display text-lg text-foreground">
+                Configurar Parâmetros de Aferição
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Configure exatamente dois resultados permitidos em ml: um negativo e um positivo.
+                Ambos devem estar entre -200 e +200. A vazão lenta e a vazão rápida usam estes
+                parâmetros no lançamento.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Parâmetro negativo</Label>
+                <Input
+                  className="mt-1"
+                  inputMode="numeric"
+                  placeholder="Ex.: -50"
+                  value={negativeParameter}
+                  onChange={(e) => {
+                    setNegativeParameter(sanitizeAfericaoInput(e.target.value));
+                    setParameterError(null);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Parâmetro positivo</Label>
+                <Input
+                  className="mt-1"
+                  inputMode="numeric"
+                  placeholder="Ex.: 50"
+                  value={positiveParameter}
+                  onChange={(e) => {
+                    setPositiveParameter(sanitizeAfericaoInput(e.target.value));
+                    setParameterError(null);
+                  }}
+                />
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => {
+                const negative = parseAfericao(negativeParameter);
+                const positive = parseAfericao(positiveParameter);
+                if (
+                  negative === undefined ||
+                  negative >= 0 ||
+                  negative < -200 ||
+                  negative > 200 ||
+                  positive === undefined ||
+                  positive <= 0 ||
+                  positive < -200 ||
+                  positive > 200
+                ) {
+                  setParameterError(
+                    "Configure um valor negativo e outro positivo entre -200 e +200",
+                  );
+                  return;
+                }
+                if (negative === positive) {
+                  setParameterError("Os parâmetros devem ser diferentes.");
+                  return;
+                }
+                actions.setAllowedAfericoes([negative, positive]);
+                setParameterError(null);
+              }}
+            >
+              Salvar parâmetros
+            </Button>
+            {parameterError ? <p className="text-xs text-destructive">{parameterError}</p> : null}
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="mb-2 font-display text-lg text-foreground">Parâmetros configurados</p>
+            {state.allowedAfericoes.length === 2 ? (
+              <p className="text-sm tabular-nums text-foreground">
+                Negativo: {state.allowedAfericoes[0]} · Positivo: {state.allowedAfericoes[1]}
+              </p>
+            ) : (
+              <p className="text-sm text-destructive">
+                Configure os dois parâmetros para liberar o lançamento de aferições.
+              </p>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Aferições são testes de medição: o combustível sai e retorna ao mesmo tanque e não
+              gera perda, falta ou venda no estoque.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {tab === "parametros" ? (
         <section className="space-y-4">
           <div className="space-y-3 rounded-xl border border-border bg-card p-4">
             <p className="font-display text-lg text-foreground">Cadastrar bico</p>
@@ -281,28 +430,51 @@ function AfericaoPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Combustível</Label>
-                <Input
-                  placeholder="Ex.: Etanol"
+                <Label>Tanque de origem / combustível</Label>
+                <select
                   value={nozzleForm.fuel}
-                  onChange={(e) => setNozzleForm((f) => ({ ...f, fuel: e.target.value }))}
-                />
+                  onChange={(e) => {
+                    setNozzleForm((f) => ({ ...f, fuel: e.target.value }));
+                    setNozzleError(null);
+                  }}
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                  required
+                >
+                  <option value="">Selecione o tanque</option>
+                  {tanks.map((tank, index) => (
+                    <option key={tank.id} value={tank.name}>
+                      Tanque {index + 1} — {tank.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <Button
               className="w-full"
               onClick={() => {
                 const fuel = nozzleForm.fuel.trim();
-                if (!fuel) return;
+                const tank = tanks.find((item) => item.name === fuel);
+                if (!tank) {
+                  setNozzleError("Informe o tanque de onde o combustível será retirado.");
+                  return;
+                }
                 actions.addNozzle({
                   name: nozzleForm.name.trim() || `Bico ${nozzles.length + 1}`,
                   fuel,
+                  tankId: tank.id,
                 });
                 setNozzleForm({ name: "", fuel: "" });
+                setNozzleError(null);
               }}
             >
               <Plus className="size-4" /> Adicionar bico
             </Button>
+            {tanks.length === 0 ? (
+              <p className="text-xs text-destructive">
+                Cadastre ao menos um tanque antes de cadastrar um bico.
+              </p>
+            ) : null}
+            {nozzleError ? <p className="text-xs text-destructive">{nozzleError}</p> : null}
           </div>
 
           <div className="rounded-xl border border-border bg-card p-4">
@@ -327,23 +499,21 @@ function AfericaoPage() {
                     className="h-9 w-24 shrink-0"
                   />
                   <select
-                    value={tankNames.includes(n.fuel) ? n.fuel : "__custom"}
+                    value={tanks.find((tank) => tank.id === n.tankId)?.id ?? ""}
                     onChange={(e) => {
-                      if (e.target.value !== "__custom")
-                        actions.updateNozzle(n.id, { fuel: e.target.value });
+                      const tank = tanks.find((item) => item.id === e.target.value);
+                      if (tank) actions.updateNozzle(n.id, { fuel: tank.name, tankId: tank.id });
                     }}
                     className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
                     style={{ color: fuelColor(state, n.fuel) ?? undefined }}
                     aria-label={`Combustível do ${n.name}`}
                   >
-                    {tankNames.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    <option value="">Selecionar tanque</option>
+                    {tanks.map((tank, index) => (
+                      <option key={tank.id} value={tank.id}>
+                        Tanque {index + 1} — {tank.name}
                       </option>
                     ))}
-                    {tankNames.includes(n.fuel) ? null : (
-                      <option value="__custom">{n.fuel || "Selecionar"}</option>
-                    )}
                   </select>
                   <Button
                     size="icon"
@@ -360,7 +530,6 @@ function AfericaoPage() {
           </div>
         </section>
       ) : null}
-
 
       {tab === "aferir" ? (
         <section className="space-y-4">
@@ -381,7 +550,7 @@ function AfericaoPage() {
 
           {nozzles.length === 0 ? (
             <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-              Cadastre os bicos na aba "Bicos" para iniciar a aferição.
+              Cadastre os bicos na aba "Parâmetros" para iniciar a aferição.
             </p>
           ) : (
             <div className="space-y-3">
@@ -403,20 +572,42 @@ function AfericaoPage() {
                     <div className="space-y-1.5">
                       <Label>Vazão lenta (ml)</Label>
                       <Input
-                        inputMode="decimal"
+                        inputMode="numeric"
+                        pattern="-?[0-9]*"
                         placeholder="0"
                         value={values[n.id]?.lenta ?? ""}
                         onChange={(e) => setVal(n.id, "lenta", e.target.value)}
+                        aria-invalid={
+                          values[n.id]?.lenta.trim() !== "" &&
+                          isInvalidAfericao(values[n.id]?.lenta ?? "", state.allowedAfericoes)
+                        }
                       />
+                      {values[n.id]?.lenta.trim() !== "" &&
+                      isInvalidAfericao(values[n.id]?.lenta ?? "", state.allowedAfericoes) ? (
+                        <p className="text-xs text-destructive">
+                          {allowedMessage(state.allowedAfericoes)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="space-y-1.5">
                       <Label>Vazão rápida (ml)</Label>
                       <Input
-                        inputMode="decimal"
+                        inputMode="numeric"
+                        pattern="-?[0-9]*"
                         placeholder="0"
                         value={values[n.id]?.rapida ?? ""}
                         onChange={(e) => setVal(n.id, "rapida", e.target.value)}
+                        aria-invalid={
+                          values[n.id]?.rapida.trim() !== "" &&
+                          isInvalidAfericao(values[n.id]?.rapida ?? "", state.allowedAfericoes)
+                        }
                       />
+                      {values[n.id]?.rapida.trim() !== "" &&
+                      isInvalidAfericao(values[n.id]?.rapida ?? "", state.allowedAfericoes) ? (
+                        <p className="text-xs text-destructive">
+                          {allowedMessage(state.allowedAfericoes)}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -474,7 +665,7 @@ function AfericaoPage() {
                 </div>
 
                 <div className="mb-3 flex justify-center">
-                  <Stamp approved={calibrationApproved(c)} />
+                  <Stamp approved={calibrationApproved(c, state.allowedAfericoes)} />
                 </div>
 
                 <div className="mb-3 text-sm">

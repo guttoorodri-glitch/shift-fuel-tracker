@@ -61,7 +61,7 @@ function TurnosPage() {
   const shifts = Array.from({ length: state.shifts }, (_, i) => i + 1);
 
   return (
-    <AppShell title="Controle de Turnos" subtitle="Medições e vendas do dia">
+    <AppShell title="Medidas e vendas diárias" subtitle="Medições e vendas do dia">
       <div className="mb-5 flex items-center justify-between rounded-xl border border-border bg-card p-2">
         <Button size="icon" variant="ghost" onClick={() => setDate(shiftISO(date, -1))}>
           <ChevronLeft className="size-5" />
@@ -162,7 +162,7 @@ function TurnosPage() {
 
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="font-display text-lg text-foreground">Estoque e vendas</h2>
+          <h2 className="font-display text-lg text-foreground">Estoque</h2>
           <div className="flex rounded-lg border border-border p-0.5">
             <Button
               size="sm"
@@ -218,9 +218,7 @@ function TurnosPage() {
                     <span className="text-foreground">
                       {i + 1}. {t.name}
                     </span>
-                    <span className="tabular-nums text-muted-foreground">
-                      vendido {fmtL(sold)}
-                    </span>
+                    <span className="tabular-nums text-muted-foreground">vendido {fmtL(sold)}</span>
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                     <div
@@ -239,7 +237,6 @@ function TurnosPage() {
           </div>
         )}
       </section>
-
     </AppShell>
   );
 }

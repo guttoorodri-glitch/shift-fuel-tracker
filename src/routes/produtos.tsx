@@ -70,7 +70,7 @@ function ProdutosPage() {
   const [tab, setTab] = useState<"vendas" | "estoque" | "relatorio">("vendas");
 
   return (
-    <AppShell title="Produtos" subtitle="Vendas, estoque e reposição">
+    <AppShell title="CONTROLE PRODUTOS" subtitle="Vendas, estoque e reposição">
       <div className="mb-4 grid grid-cols-3 gap-2">
         {(
           [
@@ -96,8 +96,8 @@ function ProdutosPage() {
 
       {state.products.length === 0 ? (
         <p className="mt-4 rounded-lg border border-border bg-muted p-3 text-xs text-muted-foreground">
-          Cadastre seus produtos na aba <strong>Estoque</strong> para começar a lançar as
-          vendas por turno.
+          Cadastre seus produtos na aba <strong>Estoque</strong> para começar a lançar as vendas por
+          turno.
         </p>
       ) : null}
     </AppShell>
@@ -260,12 +260,7 @@ function EstoqueTab({ today }: { today: string }) {
         <div className="space-y-2">
           {state.products.map((p, i) =>
             editing === p.id ? (
-              <ProductEditor
-                key={p.id}
-                index={i}
-                product={p}
-                onDone={() => setEditing(null)}
-              />
+              <ProductEditor key={p.id} index={i} product={p} onDone={() => setEditing(null)} />
             ) : (
               <div
                 key={p.id}
@@ -588,10 +583,7 @@ function StockCountSection({ today }: { today: string }) {
               {list.map((c) => {
                 const p = state.products.find((x) => x.id === c.productId);
                 return (
-                  <div
-                    key={c.id}
-                    className="border-b border-border/60 py-2 text-sm last:border-0"
-                  >
+                  <div key={c.id} className="border-b border-border/60 py-2 text-sm last:border-0">
                     <div className="flex items-center gap-2">
                       <span className="flex-1 truncate text-foreground">
                         {formatBR(c.date)} — {p?.name ?? "Produto removido"}
@@ -747,18 +739,12 @@ function RelatorioTab({ today }: { today: string }) {
   );
   const totalSemana = useMemo(
     () =>
-      state.products.reduce(
-        (a, p) => a + productSold(state, p.id, weekStartISO(today), today),
-        0,
-      ),
+      state.products.reduce((a, p) => a + productSold(state, p.id, weekStartISO(today), today), 0),
     [state, today],
   );
   const totalMes = useMemo(
     () =>
-      state.products.reduce(
-        (a, p) => a + productSold(state, p.id, monthStartISO(today), today),
-        0,
-      ),
+      state.products.reduce((a, p) => a + productSold(state, p.id, monthStartISO(today), today), 0),
     [state, today],
   );
 
@@ -840,9 +826,7 @@ function RelatorioTab({ today }: { today: string }) {
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
           Total no período:{" "}
-          <span className="font-semibold tabular-nums text-foreground">
-            {fmtQty(rangeTotal)}
-          </span>
+          <span className="font-semibold tabular-nums text-foreground">{fmtQty(rangeTotal)}</span>
         </p>
       </section>
 

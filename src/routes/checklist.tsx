@@ -140,12 +140,21 @@ function ChecklistPage() {
           aria-valuemin={0}
           aria-valuemax={100}
         >
-          <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
+          <div
+            className="h-full rounded-full bg-primary transition-[width]"
+            style={{ width: `${percent}%` }}
+          />
         </div>
       </section>
 
       {formOpen ? (
-        <ChecklistForm form={form} editing={editing !== null} onChange={setForm} onSave={save} onClose={closeForm} />
+        <ChecklistForm
+          form={form}
+          editing={editing !== null}
+          onChange={setForm}
+          onSave={save}
+          onClose={closeForm}
+        />
       ) : (
         <Button
           className="mb-4 w-full"
@@ -162,7 +171,10 @@ function ChecklistPage() {
         {visible.map((item) => {
           const checked = checks[item.id] === currentKey;
           return (
-            <li key={item.id} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg border border-border bg-card p-3">
+            <li
+              key={item.id}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg border border-border bg-card p-3"
+            >
               <Button
                 size="icon"
                 variant={checked ? "default" : "outline"}
@@ -173,16 +185,30 @@ function ChecklistPage() {
                 <Check className={`size-5 ${checked ? "opacity-100" : "opacity-20"}`} />
               </Button>
               <div className="min-w-0">
-                <p className={`text-sm leading-snug text-foreground ${checked ? "line-through opacity-60" : ""}`}>
+                <p
+                  className={`text-sm leading-snug text-foreground ${checked ? "line-through opacity-60" : ""}`}
+                >
                   {item.title}
                 </p>
                 <RequirementBadge requirement={item.requirement} />
               </div>
               <div className="flex shrink-0 flex-col gap-1">
-                <Button size="icon" variant="ghost" className="size-8" onClick={() => edit(item)} aria-label="Editar verificação">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-8"
+                  onClick={() => edit(item)}
+                  aria-label="Editar verificação"
+                >
                   <Pencil className="size-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="size-8" onClick={() => actions.removeChecklistItem(item.id)} aria-label="Excluir verificação">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-8"
+                  onClick={() => actions.removeChecklistItem(item.id)}
+                  aria-label="Excluir verificação"
+                >
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
@@ -198,16 +224,31 @@ function ChecklistPage() {
       ) : null}
 
       <p className="mt-5 rounded-lg bg-muted p-3 text-[11px] leading-relaxed text-muted-foreground">
-        Prazos de aferição, estanqueidade e controles ambientais podem variar conforme os equipamentos, a licença e as regras estaduais ou municipais. Confirme as exigências locais.
+        Prazos de aferição, estanqueidade e controles ambientais podem variar conforme os
+        equipamentos, a licença e as regras estaduais ou municipais. Confirme as exigências locais.
       </p>
     </AppShell>
   );
 }
 
 function RequirementBadge({ requirement }: { requirement: ChecklistItem["requirement"] }) {
-  const label = requirement === "obrigatorio" ? "Obrigatório" : requirement === "condicional" ? "Conforme licença/regra local" : "Boa prática";
-  const color = requirement === "obrigatorio" ? "text-destructive" : requirement === "condicional" ? "text-primary" : "text-muted-foreground";
-  return <span className={`mt-1 inline-block text-[10px] font-semibold uppercase ${color}`}>{label}</span>;
+  const label =
+    requirement === "obrigatorio"
+      ? "Obrigatório"
+      : requirement === "condicional"
+        ? "Conforme licença/regra local"
+        : "Boa prática";
+  const color =
+    requirement === "obrigatorio"
+      ? "text-destructive"
+      : requirement === "condicional"
+        ? "text-primary"
+        : "text-muted-foreground";
+  return (
+    <span className={`mt-1 inline-block text-[10px] font-semibold uppercase ${color}`}>
+      {label}
+    </span>
+  );
 }
 
 function ChecklistForm({
@@ -226,20 +267,40 @@ function ChecklistForm({
   return (
     <section className="mb-4 rounded-lg border border-border bg-card p-4">
       <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-        <h2 className="truncate font-display text-lg text-foreground">{editing ? "Editar verificação" : "Nova verificação"}</h2>
-        <Button size="icon" variant="ghost" onClick={onClose} aria-label="Fechar formulário"><X className="size-4" /></Button>
+        <h2 className="truncate font-display text-lg text-foreground">
+          {editing ? "Editar verificação" : "Nova verificação"}
+        </h2>
+        <Button size="icon" variant="ghost" onClick={onClose} aria-label="Fechar formulário">
+          <X className="size-4" />
+        </Button>
       </div>
       <div className="grid gap-3">
         <div className="grid gap-1.5">
           <Label htmlFor="check-title">O que deve ser verificado?</Label>
-          <Input id="check-title" value={form.title} onChange={(event) => onChange({ ...form, title: event.target.value })} placeholder="Digite a verificação" />
+          <Input
+            id="check-title"
+            value={form.title}
+            onChange={(event) => onChange({ ...form, title: event.target.value })}
+            placeholder="Digite a verificação"
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="check-frequency">Frequência</Label>
             <div className="relative">
-              <select id="check-frequency" className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 text-sm text-foreground" value={form.frequency} onChange={(event) => onChange({ ...form, frequency: event.target.value as ChecklistFrequency })}>
-                {frequencies.map((frequency) => <option key={frequency.id} value={frequency.id}>{frequency.label}</option>)}
+              <select
+                id="check-frequency"
+                className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 text-sm text-foreground"
+                value={form.frequency}
+                onChange={(event) =>
+                  onChange({ ...form, frequency: event.target.value as ChecklistFrequency })
+                }
+              >
+                {frequencies.map((frequency) => (
+                  <option key={frequency.id} value={frequency.id}>
+                    {frequency.label}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-3 size-4 text-muted-foreground" />
             </div>
@@ -247,7 +308,17 @@ function ChecklistForm({
           <div className="grid gap-1.5">
             <Label htmlFor="check-requirement">Classificação</Label>
             <div className="relative">
-              <select id="check-requirement" className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 text-sm text-foreground" value={form.requirement} onChange={(event) => onChange({ ...form, requirement: event.target.value as ChecklistItem["requirement"] })}>
+              <select
+                id="check-requirement"
+                className="h-10 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 text-sm text-foreground"
+                value={form.requirement}
+                onChange={(event) =>
+                  onChange({
+                    ...form,
+                    requirement: event.target.value as ChecklistItem["requirement"],
+                  })
+                }
+              >
                 <option value="obrigatorio">Obrigatório</option>
                 <option value="condicional">Regra local</option>
                 <option value="recomendado">Boa prática</option>
@@ -256,7 +327,9 @@ function ChecklistForm({
             </div>
           </div>
         </div>
-        <Button onClick={onSave}>{editing ? "Salvar alterações" : "Adicionar ao check list"}</Button>
+        <Button onClick={onSave}>
+          {editing ? "Salvar alterações" : "Adicionar ao check list"}
+        </Button>
       </div>
     </section>
   );

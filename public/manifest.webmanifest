@@ -1,6 +1,6 @@
 {
   "name": "Posto 10 — Controle de Vendas",
-  "short_name": "Posto 10",
+   "short_name": "Posto 10",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#101418",

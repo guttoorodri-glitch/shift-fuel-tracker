@@ -25,8 +25,15 @@ export function drawPdfHeader(
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 36;
   const lines = [
-    [c.address, c.bairro].filter((v) => v.trim() !== "").join(" — "),
     [
+      c.address && `${c.address}${c.number ? `, ${c.number}` : ""}`,
+      c.bairro,
+      c.city && `${c.city}${c.state ? ` - ${c.state}` : ""}`,
+    ]
+      .filter((v) => v.trim() !== "")
+      .join(" — "),
+    [
+      c.bandeira.trim() !== "" ? `Bandeira: ${c.bandeira}` : "",
       c.cnpj.trim() !== "" ? `CNPJ: ${c.cnpj}` : "",
       c.ie.trim() !== "" ? `Inscrição Estadual: ${c.ie}` : "",
       c.phone.trim() !== "" ? `Telefone: ${c.phone}` : "",

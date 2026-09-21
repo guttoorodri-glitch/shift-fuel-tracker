@@ -5,7 +5,8 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { actions, fmtL, useAppState, type Tank } from "@/lib/store";
+import { actions, fmtL, useAppState, type Company, type Tank } from "@/lib/store";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
@@ -39,10 +40,44 @@ const PALETTE = [
 
 function ConfigPage() {
   const state = useAppState();
+  const subscription = useSubscription();
   const [editing, setEditing] = useState<string | null>(null);
+  const company = state.company ?? {
+    name: "",
+    address: "",
+    number: "",
+    bairro: "",
+    city: "",
+    state: "",
+    bandeira: "",
+    cnpj: "",
+    ie: "",
+    phone: "",
+  };
 
   return (
-    <AppShell title="Configurações" subtitle="Tanques e turnos">
+    <AppShell title="Ajustes" subtitle="Dados do posto, tanques e turnos">
+      <section className="mb-6 rounded-xl border border-border bg-card p-4">
+        <h2 className="font-display text-lg text-foreground">Cadastro do posto</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Esses dados aparecem no topo do aplicativo e nos relatórios PDF.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <CompanyField label="Nome do posto" value={company.name} field="name" />
+          <CompanyField label="Bandeira" value={company.bandeira} field="bandeira" />
+          <CompanyField label="CNPJ" value={company.cnpj} field="cnpj" />
+          <CompanyField label="I.E." value={company.ie} field="ie" />
+          <CompanyField label="Endereço" value={company.address} field="address" />
+          <CompanyField label="Número" value={company.number} field="number" />
+          <CompanyField label="Bairro" value={company.bairro} field="bairro" />
+          <CompanyField label="Cidade" value={company.city} field="city" />
+          <CompanyField label="Estado" value={company.state} field="state" />
+          <CompanyField label="Telefone" value={company.phone} field="phone" />
+        </div>
+      </section>
+
+      {!subscription.isAdmin ? <PasswordSection onChange={subscription.changePassword} /> : null}
+
       <section className="mb-6 rounded-xl border border-border bg-card p-4">
         <Label className="text-xs uppercase tracking-widest text-muted-foreground">
           Quantidade de turnos
@@ -142,20 +177,63 @@ function ConfigPage() {
           ),
         )}
       </div>
-
     </AppShell>
   );
 }
 
-function TankEditor({
-  tank,
-  index,
-  onDone,
+function PasswordSection({ onChange }: { onChange: (current: string, next: string) => boolean }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+
+  return (
+    <section className="mb-6 rounded-xl border border-border bg-card p-4">
+      <h2 className="font-display text-lg text-foreground">Alterar senha</h2>
+      <p className="mt-1 text-xs text-muted-foreground">A senha inicial do seu plano é posto10.</p>
+      <form
+        className="mt-4 grid gap-3 sm:grid-cols-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setMessage(
+            onChange(current, next) ? "Senha alterada." : "Senha atual inválida ou nova senha vazia.",
+          );
+          setCurrent("");
+          setNext("");
+        }}
+      >
+        <Input type="password" placeholder="Senha atual" value={current} onChange={(event) => setCurrent(event.target.value)} />
+        <Input type="password" placeholder="Nova senha" value={next} onChange={(event) => setNext(event.target.value)} />
+        <div className="sm:col-span-2">
+          <Button type="submit">Salvar nova senha</Button>
+          {message ? <p className="mt-2 text-xs text-muted-foreground">{message}</p> : null}
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function CompanyField({
+  label,
+  value,
+  field,
 }: {
-  tank: Tank;
-  index: number;
-  onDone: () => void;
+  label: string;
+  value: string;
+  field: keyof Company;
 }) {
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input
+        className="mt-1"
+        value={value}
+        onChange={(event) => actions.setCompany({ [field]: event.target.value })}
+      />
+    </div>
+  );
+}
+
+function TankEditor({ tank, index, onDone }: { tank: Tank; index: number; onDone: () => void }) {
   const [name, setName] = useState(tank.name);
   const [capacity, setCapacity] = useState(String(tank.capacity));
   const [color, setColor] = useState(tank.color);

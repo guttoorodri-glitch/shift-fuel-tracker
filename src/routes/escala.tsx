@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  FileDown,
+  Pencil,
+  Plus,
+  Share2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { buildEscalaPdf, escalaFileName, monthLabelBR } from "@/lib/escala-pdf";
+import { downloadBlob, sharePdf } from "@/lib/share-pdf";
 import {
   actions,
   dayStatus,
@@ -38,8 +50,45 @@ function EscalaPage() {
   const state = useAppState();
   const [editing, setEditing] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(todayISO());
+  const [month, setMonth] = useState(todayISO().slice(0, 7));
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
   const days = Array.from({ length: 7 }, (_, i) => shiftISO(weekStart, i));
   const shifts = Array.from({ length: state.shifts }, (_, i) => i + 1);
+
+  const gerarEscalaPdf = async () => {
+    const blob = await buildEscalaPdf(state, month);
+    return { blob, name: escalaFileName(month) };
+  };
+
+  const compartilharEscala = async () => {
+    setExportBusy(true);
+    setExportStatus(null);
+    try {
+      const { blob, name } = await gerarEscalaPdf();
+      setExportStatus(
+        await sharePdf(blob, name, `Escala mensal do Posto 10 — ${monthLabelBR(month)}.`),
+      );
+    } catch {
+      setExportStatus("Não foi possível gerar o PDF da escala.");
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const baixarEscala = async () => {
+    setExportBusy(true);
+    setExportStatus(null);
+    try {
+      const { blob, name } = await gerarEscalaPdf();
+      downloadBlob(blob, name);
+      setExportStatus(`PDF salvo como ${name}.`);
+    } catch {
+      setExportStatus("Não foi possível gerar o PDF da escala.");
+    } finally {
+      setExportBusy(false);
+    }
+  };
 
   return (
     <AppShell title="Escala" subtitle="Frentistas, horários e folgas">
@@ -117,6 +166,34 @@ function EscalaPage() {
         ))}
       </div>
 
+      <section className="mb-7 space-y-3 rounded-xl border border-border bg-card p-4">
+        <div>
+          <h2 className="font-display text-lg text-foreground">Compartilhar escala do mês</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Gere a escala completa do dia 1 até o último dia do mês, com folgas destacadas.
+          </p>
+        </div>
+        <Input
+          aria-label="Mês da escala"
+          type="month"
+          value={month}
+          onChange={(event) => setMonth(event.target.value)}
+        />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button disabled={exportBusy} onClick={() => void compartilharEscala()}>
+            <Share2 className="size-4" /> Enviar por WhatsApp
+          </Button>
+          <Button variant="outline" disabled={exportBusy} onClick={() => void baixarEscala()}>
+            <FileDown className="size-4" /> Salvar PDF
+          </Button>
+        </div>
+        {exportStatus ? (
+          <p className="rounded-lg border border-primary/40 bg-secondary p-3 text-xs text-foreground">
+            {exportStatus}
+          </p>
+        ) : null}
+      </section>
+
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-lg text-foreground">Folgas</h2>
@@ -161,10 +238,7 @@ function EscalaPage() {
                   Frentista
                 </th>
                 {days.map((d) => (
-                  <th
-                    key={d}
-                    className="text-[11px] font-medium uppercase text-muted-foreground"
-                  >
+                  <th key={d} className="text-[11px] font-medium uppercase text-muted-foreground">
                     <span className="block">{weekdayBR(d)}</span>
                     <span className="block tabular-nums opacity-70">{d.slice(8)}</span>
                   </th>
@@ -174,9 +248,7 @@ function EscalaPage() {
             <tbody>
               {state.attendants.map((a) => (
                 <tr key={a.id}>
-                  <td className="max-w-[120px] truncate pr-2 text-xs text-foreground">
-                    {a.name}
-                  </td>
+                  <td className="max-w-[120px] truncate pr-2 text-xs text-foreground">{a.name}</td>
                   {days.map((d) => {
                     const status = dayStatus(state, a, d);
                     const cycle = () => {
@@ -200,7 +272,11 @@ function EscalaPage() {
                                 : "border-border bg-muted text-muted-foreground"
                           }`}
                         >
-                          {status === "falta" ? "Falta" : status === "folga" ? "Folga" : "T" + a.shift}
+                          {status === "falta"
+                            ? "Falta"
+                            : status === "folga"
+                              ? "Folga"
+                              : "T" + a.shift}
                         </button>
                       </td>
                     );

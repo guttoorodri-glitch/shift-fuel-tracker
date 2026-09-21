@@ -11,14 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AfericaoRouteImport } from './routes/afericao'
+import { Route as AjudaRouteImport } from './routes/ajuda'
 import { Route as BackupRouteImport } from './routes/backup'
 import { Route as ChecklistRouteImport } from './routes/checklist'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ConfiguracoesFormasPagamentoRouteImport } from './routes/configuracoes-formas-pagamento'
+import { Route as ConfiguracoesPrecosRouteImport } from './routes/configuracoes-precos'
 import { Route as EscalaRouteImport } from './routes/escala'
+import { Route as FechamentoCaixaRouteImport } from './routes/fechamento-caixa'
+import { Route as LmcRouteImport } from './routes/lmc'
+import { Route as PagamentosRouteImport } from './routes/pagamentos'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as RecebimentoRouteImport } from './routes/recebimento'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TarefasRouteImport } from './routes/tarefas'
+import { Route as TrocaOleoRouteImport } from './routes/troca-oleo'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const AfericaoRoute = AfericaoRouteImport.update({
   id: '/afericao',
   path: '/afericao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AjudaRoute = AjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BackupRoute = BackupRouteImport.update({
@@ -45,9 +57,35 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfiguracoesFormasPagamentoRoute =
+  ConfiguracoesFormasPagamentoRouteImport.update({
+    id: '/configuracoes-formas-pagamento',
+    path: '/configuracoes-formas-pagamento',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ConfiguracoesPrecosRoute = ConfiguracoesPrecosRouteImport.update({
+  id: '/configuracoes-precos',
+  path: '/configuracoes-precos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EscalaRoute = EscalaRouteImport.update({
   id: '/escala',
   path: '/escala',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FechamentoCaixaRoute = FechamentoCaixaRouteImport.update({
+  id: '/fechamento-caixa',
+  path: '/fechamento-caixa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LmcRoute = LmcRouteImport.update({
+  id: '/lmc',
+  path: '/lmc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagamentosRoute = PagamentosRouteImport.update({
+  id: '/pagamentos',
+  path: '/pagamentos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProdutosRoute = ProdutosRouteImport.update({
@@ -70,94 +108,148 @@ const TarefasRoute = TarefasRouteImport.update({
   path: '/tarefas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrocaOleoRoute = TrocaOleoRouteImport.update({
+  id: '/troca-oleo',
+  path: '/troca-oleo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/afericao': typeof AfericaoRoute
+  '/ajuda': typeof AjudaRoute
   '/backup': typeof BackupRoute
   '/checklist': typeof ChecklistRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/configuracoes-formas-pagamento': typeof ConfiguracoesFormasPagamentoRoute
+  '/configuracoes-precos': typeof ConfiguracoesPrecosRoute
   '/escala': typeof EscalaRoute
+  '/fechamento-caixa': typeof FechamentoCaixaRoute
+  '/lmc': typeof LmcRoute
+  '/pagamentos': typeof PagamentosRoute
   '/produtos': typeof ProdutosRoute
   '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
+  '/troca-oleo': typeof TrocaOleoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/afericao': typeof AfericaoRoute
+  '/ajuda': typeof AjudaRoute
   '/backup': typeof BackupRoute
   '/checklist': typeof ChecklistRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/configuracoes-formas-pagamento': typeof ConfiguracoesFormasPagamentoRoute
+  '/configuracoes-precos': typeof ConfiguracoesPrecosRoute
   '/escala': typeof EscalaRoute
+  '/fechamento-caixa': typeof FechamentoCaixaRoute
+  '/lmc': typeof LmcRoute
+  '/pagamentos': typeof PagamentosRoute
   '/produtos': typeof ProdutosRoute
   '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
+  '/troca-oleo': typeof TrocaOleoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/afericao': typeof AfericaoRoute
+  '/ajuda': typeof AjudaRoute
   '/backup': typeof BackupRoute
   '/checklist': typeof ChecklistRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/configuracoes-formas-pagamento': typeof ConfiguracoesFormasPagamentoRoute
+  '/configuracoes-precos': typeof ConfiguracoesPrecosRoute
   '/escala': typeof EscalaRoute
+  '/fechamento-caixa': typeof FechamentoCaixaRoute
+  '/lmc': typeof LmcRoute
+  '/pagamentos': typeof PagamentosRoute
   '/produtos': typeof ProdutosRoute
   '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
+  '/troca-oleo': typeof TrocaOleoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/afericao'
+    | '/ajuda'
     | '/backup'
     | '/checklist'
     | '/configuracoes'
+    | '/configuracoes-formas-pagamento'
+    | '/configuracoes-precos'
     | '/escala'
+    | '/fechamento-caixa'
+    | '/lmc'
+    | '/pagamentos'
     | '/produtos'
     | '/recebimento'
     | '/relatorios'
     | '/tarefas'
+    | '/troca-oleo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/afericao'
+    | '/ajuda'
     | '/backup'
     | '/checklist'
     | '/configuracoes'
+    | '/configuracoes-formas-pagamento'
+    | '/configuracoes-precos'
     | '/escala'
+    | '/fechamento-caixa'
+    | '/lmc'
+    | '/pagamentos'
     | '/produtos'
     | '/recebimento'
     | '/relatorios'
     | '/tarefas'
+    | '/troca-oleo'
   id:
     | '__root__'
     | '/'
     | '/afericao'
+    | '/ajuda'
     | '/backup'
     | '/checklist'
     | '/configuracoes'
+    | '/configuracoes-formas-pagamento'
+    | '/configuracoes-precos'
     | '/escala'
+    | '/fechamento-caixa'
+    | '/lmc'
+    | '/pagamentos'
     | '/produtos'
     | '/recebimento'
     | '/relatorios'
     | '/tarefas'
+    | '/troca-oleo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AfericaoRoute: typeof AfericaoRoute
+  AjudaRoute: typeof AjudaRoute
   BackupRoute: typeof BackupRoute
   ChecklistRoute: typeof ChecklistRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ConfiguracoesFormasPagamentoRoute: typeof ConfiguracoesFormasPagamentoRoute
+  ConfiguracoesPrecosRoute: typeof ConfiguracoesPrecosRoute
   EscalaRoute: typeof EscalaRoute
+  FechamentoCaixaRoute: typeof FechamentoCaixaRoute
+  LmcRoute: typeof LmcRoute
+  PagamentosRoute: typeof PagamentosRoute
   ProdutosRoute: typeof ProdutosRoute
   RecebimentoRoute: typeof RecebimentoRoute
   RelatoriosRoute: typeof RelatoriosRoute
   TarefasRoute: typeof TarefasRoute
+  TrocaOleoRoute: typeof TrocaOleoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -174,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/afericao'
       fullPath: '/afericao'
       preLoaderRoute: typeof AfericaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ajuda': {
+      id: '/ajuda'
+      path: '/ajuda'
+      fullPath: '/ajuda'
+      preLoaderRoute: typeof AjudaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/backup': {
@@ -197,11 +296,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes-formas-pagamento': {
+      id: '/configuracoes-formas-pagamento'
+      path: '/configuracoes-formas-pagamento'
+      fullPath: '/configuracoes-formas-pagamento'
+      preLoaderRoute: typeof ConfiguracoesFormasPagamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes-precos': {
+      id: '/configuracoes-precos'
+      path: '/configuracoes-precos'
+      fullPath: '/configuracoes-precos'
+      preLoaderRoute: typeof ConfiguracoesPrecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/escala': {
       id: '/escala'
       path: '/escala'
       fullPath: '/escala'
       preLoaderRoute: typeof EscalaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fechamento-caixa': {
+      id: '/fechamento-caixa'
+      path: '/fechamento-caixa'
+      fullPath: '/fechamento-caixa'
+      preLoaderRoute: typeof FechamentoCaixaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lmc': {
+      id: '/lmc'
+      path: '/lmc'
+      fullPath: '/lmc'
+      preLoaderRoute: typeof LmcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagamentos': {
+      id: '/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/pagamentos'
+      preLoaderRoute: typeof PagamentosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/produtos': {
@@ -232,20 +366,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TarefasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/troca-oleo': {
+      id: '/troca-oleo'
+      path: '/troca-oleo'
+      fullPath: '/troca-oleo'
+      preLoaderRoute: typeof TrocaOleoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AfericaoRoute: AfericaoRoute,
+  AjudaRoute: AjudaRoute,
   BackupRoute: BackupRoute,
   ChecklistRoute: ChecklistRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  ConfiguracoesFormasPagamentoRoute: ConfiguracoesFormasPagamentoRoute,
+  ConfiguracoesPrecosRoute: ConfiguracoesPrecosRoute,
   EscalaRoute: EscalaRoute,
+  FechamentoCaixaRoute: FechamentoCaixaRoute,
+  LmcRoute: LmcRoute,
+  PagamentosRoute: PagamentosRoute,
   ProdutosRoute: ProdutosRoute,
   RecebimentoRoute: RecebimentoRoute,
   RelatoriosRoute: RelatoriosRoute,
   TarefasRoute: TarefasRoute,
+  TrocaOleoRoute: TrocaOleoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

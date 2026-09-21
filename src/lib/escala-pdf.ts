@@ -29,10 +29,7 @@ export function escalaFileName(month: string) {
 function daysOfMonth(month: string) {
   const [y, m] = month.split("-").map(Number) as [number, number];
   const last = new Date(y, m, 0).getDate();
-  return Array.from(
-    { length: last },
-    (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`,
-  );
+  return Array.from({ length: last }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`);
 }
 
 /** Escala mensal de todos os frentistas em A4 paisagem */

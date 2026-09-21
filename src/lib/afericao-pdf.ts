@@ -6,10 +6,7 @@ export function afericaoFileName(c: Calibration) {
   return `afericao-${c.date}.pdf`;
 }
 
-export async function buildAfericaoPdf(
-  state: AppState,
-  calibration: Calibration,
-): Promise<Blob> {
+export async function buildAfericaoPdf(state: AppState, calibration: Calibration): Promise<Blob> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -34,14 +31,13 @@ export async function buildAfericaoPdf(
   // Cabeçalho com os dados cadastrais do posto
   y = drawPdfHeader(doc, state, "Relatório de aferição de bicos");
 
-
   text(`Data: ${formatBR(calibration.date)}`, margin, 11, true);
   nl(16);
   text(`Responsável: ${calibration.responsavel}`, margin, 11, true);
   nl(24);
 
   // Carimbo aprovado/reprovado
-  const approved = calibrationApproved(calibration);
+  const approved = calibrationApproved(calibration, state.allowedAfericoes);
   const stampText = approved ? "AFERIÇÃO APROVADA" : "AFERIÇÃO REPROVADA";
   const stampColor: [number, number, number] = approved ? [22, 163, 74] : [220, 38, 38];
   doc.setFont("helvetica", "bold");
@@ -59,7 +55,11 @@ export async function buildAfericaoPdf(
   doc.setLineWidth(0.5);
   nl(stampH + 14);
 
-  text(`Padrão aceito: entre -100 e +100 ml em todas as medições.`, margin, 9);
+  const lowerLimit =
+    state.allowedAfericoes.length === 2 ? Math.min(...state.allowedAfericoes) : -100;
+  const upperLimit =
+    state.allowedAfericoes.length === 2 ? Math.max(...state.allowedAfericoes) : 100;
+  text(`Padrão aceito: entre ${lowerLimit} e +${upperLimit} ml em todas as medições.`, margin, 9);
   nl(20);
 
   // Tabela de bicos
@@ -79,9 +79,7 @@ export async function buildAfericaoPdf(
   };
   header();
 
-  const items = calibration.items.filter(
-    (i) => i.lenta !== undefined || i.rapida !== undefined,
-  );
+  const items = calibration.items.filter((i) => i.lenta !== undefined || i.rapida !== undefined);
 
   if (items.length === 0) {
     text("Nenhuma medição registrada.", margin, 10);
@@ -97,16 +95,15 @@ export async function buildAfericaoPdf(
     const nozzle = state.nozzles?.find((n) => n.id === i.nozzleId);
     const name = nozzle?.name ?? "Bico";
     const fuel = nozzle?.fuel ?? "";
-    const fmt = (v?: number) =>
-      v === undefined ? "—" : `${v > 0 ? "+" : ""}${v}`;
+    const fmt = (v?: number) => (v === undefined ? "—" : `${v > 0 ? "+" : ""}${v}`);
 
     if (idx % 2 === 0) {
       doc.setFillColor(245, 245, 245);
       doc.rect(margin - 4, y - 9, pageW - 2 * margin + 8, 14, "F");
     }
     const out =
-      (typeof i.lenta === "number" && Math.abs(i.lenta) > 100) ||
-      (typeof i.rapida === "number" && Math.abs(i.rapida) > 100);
+      (typeof i.lenta === "number" && (i.lenta < lowerLimit || i.lenta > upperLimit)) ||
+      (typeof i.rapida === "number" && (i.rapida < lowerLimit || i.rapida > upperLimit));
     text(name, colBico, 9, out);
     text(fuel, colFuel, 9);
     text(fmt(i.lenta), colLenta, 9);

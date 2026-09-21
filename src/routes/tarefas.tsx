@@ -77,7 +77,7 @@ function TarefasPage() {
   };
 
   return (
-    <AppShell title="Tarefas" subtitle="Quadro kanban">
+    <AppShell title="TAREFAS" subtitle="Quadro kanban">
       {open ? (
         <section className="mb-4 rounded-xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center justify-between">
