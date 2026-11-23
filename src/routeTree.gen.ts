@@ -10,26 +10,42 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminDevRouteImport } from './routes/admin-dev'
 import { Route as AfericaoRouteImport } from './routes/afericao'
 import { Route as AjudaRouteImport } from './routes/ajuda'
+import { Route as AniversariantesRouteImport } from './routes/aniversariantes'
 import { Route as BackupRouteImport } from './routes/backup'
+import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as ChecklistRouteImport } from './routes/checklist'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConfiguracoesFormasPagamentoRouteImport } from './routes/configuracoes-formas-pagamento'
 import { Route as ConfiguracoesPrecosRouteImport } from './routes/configuracoes-precos'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EscalaRouteImport } from './routes/escala'
 import { Route as FechamentoCaixaRouteImport } from './routes/fechamento-caixa'
+import { Route as FiscalizacaoRouteImport } from './routes/fiscalizacao'
+import { Route as LgpdRouteImport } from './routes/lgpd'
 import { Route as LmcRouteImport } from './routes/lmc'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MetasRouteImport } from './routes/metas'
 import { Route as PagamentosRouteImport } from './routes/pagamentos'
+import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as RecebimentoRouteImport } from './routes/recebimento'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as TarefasRouteImport } from './routes/tarefas'
 import { Route as TrocaOleoRouteImport } from './routes/troca-oleo'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDevRoute = AdminDevRouteImport.update({
+  id: '/admin-dev',
+  path: '/admin-dev',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AfericaoRoute = AfericaoRouteImport.update({
@@ -42,14 +58,29 @@ const AjudaRoute = AjudaRouteImport.update({
   path: '/ajuda',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AniversariantesRoute = AniversariantesRouteImport.update({
+  id: '/aniversariantes',
+  path: '/aniversariantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BackupRoute = BackupRouteImport.update({
   id: '/backup',
   path: '/backup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChecklistRoute = ChecklistRouteImport.update({
   id: '/checklist',
   path: '/checklist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -68,6 +99,11 @@ const ConfiguracoesPrecosRoute = ConfiguracoesPrecosRouteImport.update({
   path: '/configuracoes-precos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EscalaRoute = EscalaRouteImport.update({
   id: '/escala',
   path: '/escala',
@@ -78,14 +114,39 @@ const FechamentoCaixaRoute = FechamentoCaixaRouteImport.update({
   path: '/fechamento-caixa',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FiscalizacaoRoute = FiscalizacaoRouteImport.update({
+  id: '/fiscalizacao',
+  path: '/fiscalizacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LgpdRoute = LgpdRouteImport.update({
+  id: '/lgpd',
+  path: '/lgpd',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LmcRoute = LmcRouteImport.update({
   id: '/lmc',
   path: '/lmc',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetasRoute = MetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PagamentosRoute = PagamentosRouteImport.update({
   id: '/pagamentos',
   path: '/pagamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanosRoute = PlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProdutosRoute = ProdutosRouteImport.update({
@@ -113,143 +174,225 @@ const TrocaOleoRoute = TrocaOleoRouteImport.update({
   path: '/troca-oleo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin-dev': typeof AdminDevRoute
   '/afericao': typeof AfericaoRoute
   '/ajuda': typeof AjudaRoute
+  '/aniversariantes': typeof AniversariantesRoute
   '/backup': typeof BackupRoute
+  '/cadastro': typeof CadastroRoute
   '/checklist': typeof ChecklistRoute
+  '/checkout': typeof CheckoutRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/configuracoes-formas-pagamento': typeof ConfiguracoesFormasPagamentoRoute
   '/configuracoes-precos': typeof ConfiguracoesPrecosRoute
+  '/dashboard': typeof DashboardRoute
   '/escala': typeof EscalaRoute
   '/fechamento-caixa': typeof FechamentoCaixaRoute
+  '/fiscalizacao': typeof FiscalizacaoRoute
+  '/lgpd': typeof LgpdRoute
   '/lmc': typeof LmcRoute
+  '/login': typeof LoginRoute
+  '/metas': typeof MetasRoute
   '/pagamentos': typeof PagamentosRoute
+  '/planos': typeof PlanosRoute
   '/produtos': typeof ProdutosRoute
   '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
   '/troca-oleo': typeof TrocaOleoRoute
+  '/usuarios': typeof UsuariosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin-dev': typeof AdminDevRoute
   '/afericao': typeof AfericaoRoute
   '/ajuda': typeof AjudaRoute
+  '/aniversariantes': typeof AniversariantesRoute
   '/backup': typeof BackupRoute
+  '/cadastro': typeof CadastroRoute
   '/checklist': typeof ChecklistRoute
+  '/checkout': typeof CheckoutRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/configuracoes-formas-pagamento': typeof ConfiguracoesFormasPagamentoRoute
   '/configuracoes-precos': typeof ConfiguracoesPrecosRoute
+  '/dashboard': typeof DashboardRoute
   '/escala': typeof EscalaRoute
   '/fechamento-caixa': typeof FechamentoCaixaRoute
+  '/fiscalizacao': typeof FiscalizacaoRoute
+  '/lgpd': typeof LgpdRoute
   '/lmc': typeof LmcRoute
+  '/login': typeof LoginRoute
+  '/metas': typeof MetasRoute
   '/pagamentos': typeof PagamentosRoute
+  '/planos': typeof PlanosRoute
   '/produtos': typeof ProdutosRoute
   '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
   '/troca-oleo': typeof TrocaOleoRoute
+  '/usuarios': typeof UsuariosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin-dev': typeof AdminDevRoute
   '/afericao': typeof AfericaoRoute
   '/ajuda': typeof AjudaRoute
+  '/aniversariantes': typeof AniversariantesRoute
   '/backup': typeof BackupRoute
+  '/cadastro': typeof CadastroRoute
   '/checklist': typeof ChecklistRoute
+  '/checkout': typeof CheckoutRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/configuracoes-formas-pagamento': typeof ConfiguracoesFormasPagamentoRoute
   '/configuracoes-precos': typeof ConfiguracoesPrecosRoute
+  '/dashboard': typeof DashboardRoute
   '/escala': typeof EscalaRoute
   '/fechamento-caixa': typeof FechamentoCaixaRoute
+  '/fiscalizacao': typeof FiscalizacaoRoute
+  '/lgpd': typeof LgpdRoute
   '/lmc': typeof LmcRoute
+  '/login': typeof LoginRoute
+  '/metas': typeof MetasRoute
   '/pagamentos': typeof PagamentosRoute
+  '/planos': typeof PlanosRoute
   '/produtos': typeof ProdutosRoute
   '/recebimento': typeof RecebimentoRoute
   '/relatorios': typeof RelatoriosRoute
   '/tarefas': typeof TarefasRoute
   '/troca-oleo': typeof TrocaOleoRoute
+  '/usuarios': typeof UsuariosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin-dev'
     | '/afericao'
     | '/ajuda'
+    | '/aniversariantes'
     | '/backup'
+    | '/cadastro'
     | '/checklist'
+    | '/checkout'
     | '/configuracoes'
     | '/configuracoes-formas-pagamento'
     | '/configuracoes-precos'
+    | '/dashboard'
     | '/escala'
     | '/fechamento-caixa'
+    | '/fiscalizacao'
+    | '/lgpd'
     | '/lmc'
+    | '/login'
+    | '/metas'
     | '/pagamentos'
+    | '/planos'
     | '/produtos'
     | '/recebimento'
     | '/relatorios'
     | '/tarefas'
     | '/troca-oleo'
+    | '/usuarios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin-dev'
     | '/afericao'
     | '/ajuda'
+    | '/aniversariantes'
     | '/backup'
+    | '/cadastro'
     | '/checklist'
+    | '/checkout'
     | '/configuracoes'
     | '/configuracoes-formas-pagamento'
     | '/configuracoes-precos'
+    | '/dashboard'
     | '/escala'
     | '/fechamento-caixa'
+    | '/fiscalizacao'
+    | '/lgpd'
     | '/lmc'
+    | '/login'
+    | '/metas'
     | '/pagamentos'
+    | '/planos'
     | '/produtos'
     | '/recebimento'
     | '/relatorios'
     | '/tarefas'
     | '/troca-oleo'
+    | '/usuarios'
   id:
     | '__root__'
     | '/'
+    | '/admin-dev'
     | '/afericao'
     | '/ajuda'
+    | '/aniversariantes'
     | '/backup'
+    | '/cadastro'
     | '/checklist'
+    | '/checkout'
     | '/configuracoes'
     | '/configuracoes-formas-pagamento'
     | '/configuracoes-precos'
+    | '/dashboard'
     | '/escala'
     | '/fechamento-caixa'
+    | '/fiscalizacao'
+    | '/lgpd'
     | '/lmc'
+    | '/login'
+    | '/metas'
     | '/pagamentos'
+    | '/planos'
     | '/produtos'
     | '/recebimento'
     | '/relatorios'
     | '/tarefas'
     | '/troca-oleo'
+    | '/usuarios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminDevRoute: typeof AdminDevRoute
   AfericaoRoute: typeof AfericaoRoute
   AjudaRoute: typeof AjudaRoute
+  AniversariantesRoute: typeof AniversariantesRoute
   BackupRoute: typeof BackupRoute
+  CadastroRoute: typeof CadastroRoute
   ChecklistRoute: typeof ChecklistRoute
+  CheckoutRoute: typeof CheckoutRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   ConfiguracoesFormasPagamentoRoute: typeof ConfiguracoesFormasPagamentoRoute
   ConfiguracoesPrecosRoute: typeof ConfiguracoesPrecosRoute
+  DashboardRoute: typeof DashboardRoute
   EscalaRoute: typeof EscalaRoute
   FechamentoCaixaRoute: typeof FechamentoCaixaRoute
+  FiscalizacaoRoute: typeof FiscalizacaoRoute
+  LgpdRoute: typeof LgpdRoute
   LmcRoute: typeof LmcRoute
+  LoginRoute: typeof LoginRoute
+  MetasRoute: typeof MetasRoute
   PagamentosRoute: typeof PagamentosRoute
+  PlanosRoute: typeof PlanosRoute
   ProdutosRoute: typeof ProdutosRoute
   RecebimentoRoute: typeof RecebimentoRoute
   RelatoriosRoute: typeof RelatoriosRoute
   TarefasRoute: typeof TarefasRoute
   TrocaOleoRoute: typeof TrocaOleoRoute
+  UsuariosRoute: typeof UsuariosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -259,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-dev': {
+      id: '/admin-dev'
+      path: '/admin-dev'
+      fullPath: '/admin-dev'
+      preLoaderRoute: typeof AdminDevRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/afericao': {
@@ -275,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AjudaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aniversariantes': {
+      id: '/aniversariantes'
+      path: '/aniversariantes'
+      fullPath: '/aniversariantes'
+      preLoaderRoute: typeof AniversariantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/backup': {
       id: '/backup'
       path: '/backup'
@@ -282,11 +439,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BackupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checklist': {
       id: '/checklist'
       path: '/checklist'
       fullPath: '/checklist'
       preLoaderRoute: typeof ChecklistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -310,6 +481,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesPrecosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/escala': {
       id: '/escala'
       path: '/escala'
@@ -324,6 +502,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FechamentoCaixaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fiscalizacao': {
+      id: '/fiscalizacao'
+      path: '/fiscalizacao'
+      fullPath: '/fiscalizacao'
+      preLoaderRoute: typeof FiscalizacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lgpd': {
+      id: '/lgpd'
+      path: '/lgpd'
+      fullPath: '/lgpd'
+      preLoaderRoute: typeof LgpdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lmc': {
       id: '/lmc'
       path: '/lmc'
@@ -331,11 +523,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LmcRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/metas': {
+      id: '/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof MetasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pagamentos': {
       id: '/pagamentos'
       path: '/pagamentos'
       fullPath: '/pagamentos'
       preLoaderRoute: typeof PagamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planos': {
+      id: '/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof PlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/produtos': {
@@ -373,27 +586,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrocaOleoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminDevRoute: AdminDevRoute,
   AfericaoRoute: AfericaoRoute,
   AjudaRoute: AjudaRoute,
+  AniversariantesRoute: AniversariantesRoute,
   BackupRoute: BackupRoute,
+  CadastroRoute: CadastroRoute,
   ChecklistRoute: ChecklistRoute,
+  CheckoutRoute: CheckoutRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   ConfiguracoesFormasPagamentoRoute: ConfiguracoesFormasPagamentoRoute,
   ConfiguracoesPrecosRoute: ConfiguracoesPrecosRoute,
+  DashboardRoute: DashboardRoute,
   EscalaRoute: EscalaRoute,
   FechamentoCaixaRoute: FechamentoCaixaRoute,
+  FiscalizacaoRoute: FiscalizacaoRoute,
+  LgpdRoute: LgpdRoute,
   LmcRoute: LmcRoute,
+  LoginRoute: LoginRoute,
+  MetasRoute: MetasRoute,
   PagamentosRoute: PagamentosRoute,
+  PlanosRoute: PlanosRoute,
   ProdutosRoute: ProdutosRoute,
   RecebimentoRoute: RecebimentoRoute,
   RelatoriosRoute: RelatoriosRoute,
   TarefasRoute: TarefasRoute,
   TrocaOleoRoute: TrocaOleoRoute,
+  UsuariosRoute: UsuariosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

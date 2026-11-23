@@ -1,6 +1,7 @@
 import type { AppState } from "@/lib/store";
 import { estimatedLevel, fmtL, formatBR, totalSalesOfDay, weekdayBR } from "@/lib/store";
 import { drawPdfFooter, drawPdfHeader } from "@/lib/pdf-header";
+import { calculateDailySalesSummary } from "@/lib/daily-sales-summary";
 
 function datesInRange(s: AppState, from: string, to: string) {
   const keys = new Set([...Object.keys(s.openings), ...Object.keys(s.sales)]);
@@ -97,7 +98,80 @@ export async function buildMedicoesPdf(
       }
     });
     text(`Total vendido no dia: ${fmtL(totalDia)}`, colTank, 9, true);
-    nl(22);
+    nl(16);
+
+    const resumo = calculateDailySalesSummary(
+      state.tanks,
+      (shift, tankId) => state.sales[date]?.[shift]?.[tankId],
+    );
+    const cardX = margin;
+    const cardW = pageW - margin * 2;
+    const columnCount = Math.max(2, Math.floor(cardW / 100));
+    const fuelColumns = columnCount - 1;
+    const rowCount = Math.max(1, Math.ceil(resumo.fuels.length / fuelColumns));
+    const rowHeight = 30;
+    const cardH = 20 + rowCount * rowHeight;
+    if (y - 8 + cardH > pageH - margin) {
+      doc.addPage();
+      y = margin + 8;
+    }
+    const cardY = y - 8;
+    const cellW = cardW / columnCount;
+    doc.setDrawColor(124, 58, 237);
+    doc.setLineWidth(1);
+    doc.roundedRect(cardX, cardY, cardW, cardH, 5, 5, "S");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(55, 65, 81);
+    doc.text("RESUMO DO DIA - TOTALIZADO", cardX + 8, cardY + 11);
+
+    resumo.fuels.forEach((fuel, index) => {
+      const row = Math.floor(index / fuelColumns);
+      const column = index % fuelColumns;
+      const centerX = cardX + cellW * column + cellW / 2;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6);
+      doc.setTextColor(55, 65, 81);
+      doc.text(fuel.name.toLocaleUpperCase("pt-BR"), centerX, cardY + 25 + row * rowHeight, {
+        align: "center",
+        maxWidth: cellW - 8,
+      });
+      doc.setFontSize(9);
+      doc.text(
+        `${Math.round(fuel.liters).toLocaleString("pt-BR")} L`,
+        centerX,
+        cardY + 38 + row * rowHeight,
+        { align: "center" },
+      );
+    });
+
+    const totalX = cardX + cellW * (columnCount - 1);
+    const totalY = cardY + 20 + (rowCount - 1) * rowHeight;
+    doc.setFillColor(220, 38, 38);
+    doc.roundedRect(totalX, totalY, cellW, rowHeight, 5, 5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.text("TOTAL DO DIA", totalX + cellW / 2, totalY + 9, { align: "center" });
+    doc.setFontSize(9);
+    const totalLabelY = resumo.mixAditivada === null ? totalY + 23 : totalY + 20;
+    doc.text(
+      `${Math.round(resumo.totalGeralLitros).toLocaleString("pt-BR")} L`,
+      totalX + cellW / 2,
+      totalLabelY,
+      { align: "center" },
+    );
+    if (resumo.mixAditivada !== null) {
+      doc.setFontSize(6);
+      doc.text(
+        `Mix ${resumo.mixAditivada.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`,
+        totalX + cellW / 2,
+        totalY + 28,
+        { align: "center" },
+      );
+    }
+    doc.setTextColor(0);
+    nl(cardH + 10);
   }
 
   if (days.length > 0) {
@@ -122,7 +196,5 @@ export async function buildMedicoesPdf(
   }
 
   drawPdfFooter(doc, state, `${formatBR(from)} a ${formatBR(to)}`);
-
-
   return doc.output("blob");
 }

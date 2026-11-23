@@ -1,78 +1,79 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { CreditCard } from "lucide-react";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Button } from "@/components/ui/button";
-import { PixPagamento } from "@/hooks/subscription-ui";
-import { PLAN_PRICES, type SubscriptionPlan, useSubscription } from "@/hooks/useSubscription";
+import { useSubscription } from "@/hooks/useSubscription";
+import { saasMonthlyEquivalent, saasPlanPrice } from "@/lib/saas-checkout";
 
 export const Route = createFileRoute("/pagamentos")({
-  head: () => ({
-    meta: [
-      { title: "PAGAMENTOS — Posto 10" },
-      { name: "description", content: "Pagamento e renovação da assinatura do aplicativo." },
-    ],
-  }),
-  component: PagamentosPage,
+  head: () => ({ meta: [{ title: "Minha assinatura — Posto 10" }] }),
+  component: SubscriptionPage,
 });
 
-function PagamentosPage() {
+function SubscriptionPage() {
   const subscription = useSubscription();
-  const [plan, setPlan] = useState<SubscriptionPlan>(subscription.subscriptionPlan);
 
-  const plans: Array<{ id: SubscriptionPlan; title: string; description: string }> = [
-    { id: "troca-oleo", title: "TROCA DE ÓLEO", description: "Libera PAGAMENTOS e TROCA DE ÓLEO." },
-    {
-      id: "frentista",
-      title: "FRENTISTA",
-      description: "Libera medidas, relatórios de combustível, produtos e recebimento.",
-    },
-    {
-      id: "gerente",
-      title: "GERENTE",
-      description: "Libera todas as abas e o aplicativo completo.",
-    },
-  ];
+  if (subscription.authLoading) return null;
+  if (!subscription.isAuthenticated || subscription.role !== "PROPRIETARIO") {
+    return <Navigate to="/" replace />;
+  }
+
+  const account = subscription.currentAccount;
+  const plan = account?.plano === "ANUAL" || account?.plano === "MENSAL" ? account.plano : null;
 
   return (
-    <AppShell title="PAGAMENTOS" subtitle="Assinatura e renovação">
-      <section className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-6">
-        <div className="flex items-center gap-2">
-          <CreditCard className="size-5 text-primary" />
-          <h2 className="font-display text-xl text-foreground">Pagamento via PIX</h2>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          A assinatura libera o aplicativo por 30 dias. Após realizar o pagamento, confirme no botão
-          abaixo para liberar ou renovar o acesso.
+    <AppShell title="MINHA ASSINATURA" subtitle="PLANO E PAGAMENTO">
+      <section className="mx-auto max-w-3xl rounded-2xl border border-border bg-card p-5 text-foreground shadow-sm sm:p-7">
+        <h1 className="font-display text-2xl">ASSINATURA DO POSTO</h1>
+        <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl bg-muted p-4">
+            <dt className="text-sm font-bold text-muted-foreground">POSTO</dt>
+            <dd className="mt-1 font-extrabold">{account?.postoNome ?? "POSTO NÃO INFORMADO"}</dd>
+          </div>
+          <div className="rounded-xl bg-muted p-4">
+            <dt className="text-sm font-bold text-muted-foreground">PLANO</dt>
+            <dd className="mt-1 font-extrabold">{plan ?? account?.plano ?? "TRIAL 48H"}</dd>
+          </div>
+          <div className="rounded-xl bg-muted p-4">
+            <dt className="text-sm font-bold text-muted-foreground">VALOR</dt>
+            <dd className="mt-1 font-extrabold">
+              {plan
+                ? `R$ ${saasPlanPrice(plan).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}${plan === "MENSAL" ? "/MÊS" : "/ANO"}`
+                : "SEM COBRANÇA DURANTE O TESTE"}
+            </dd>
+            {plan === "ANUAL" ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                EQUIVALE A R${" "}
+                {saasMonthlyEquivalent("ANUAL").toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                })}
+                /MÊS
+              </p>
+            ) : null}
+          </div>
+          <div className="rounded-xl bg-muted p-4">
+            <dt className="text-sm font-bold text-muted-foreground">STATUS</dt>
+            <dd className="mt-1 font-extrabold">
+              {account?.billingStatus ?? account?.status ?? "NÃO INFORMADO"}
+            </dd>
+          </div>
+          <div className="rounded-xl bg-muted p-4 sm:col-span-2">
+            <dt className="text-sm font-bold text-muted-foreground">PRÓXIMO VENCIMENTO</dt>
+            <dd className="mt-1 font-extrabold">
+              {account?.dataProximoVencimento
+                ? new Date(account.dataProximoVencimento).toLocaleDateString("pt-BR")
+                : "NÃO DEFINIDO"}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-5 rounded-xl border border-amber-400/50 bg-amber-50 p-4 text-sm font-semibold text-amber-950">
+          ALTERAÇÕES E PAGAMENTOS ONLINE AINDA NÃO ESTÃO DISPONÍVEIS. ENTRE EM CONTATO COM O SUPORTE
+          PARA ALTERAR OU REGULARIZAR SUA ASSINATURA.
         </p>
-        <div className="grid gap-2">
-          {plans.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setPlan(item.id)}
-              className={`rounded-xl border p-3 text-left ${plan === item.id ? "border-primary bg-primary/10" : "border-border"}`}
-            >
-              <strong className="text-foreground">
-                {item.title} · R${PLAN_PRICES[item.id]}
-              </strong>
-              <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>
-            </button>
-          ))}
-        </div>
-        <PixPagamento
-          price={PLAN_PRICES[plan]}
-          onJaPaguei={() => subscription.renewSubscription(plan)}
-        />
-        <p className="text-center text-xs text-muted-foreground">
-          Status atual:{" "}
-          <strong className="text-foreground">
-            {subscription.isAdmin ? "Administrador" : subscription.subscriptionStatus}
-          </strong>
-        </p>
-        <Button variant="ghost" className="w-full" onClick={() => void subscription.logout()}>
-          Sair
-        </Button>
+        <a
+          href="/planos"
+          className="mt-5 inline-flex rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 hover:bg-amber-400"
+        >
+          VER PLANOS
+        </a>
       </section>
     </AppShell>
   );

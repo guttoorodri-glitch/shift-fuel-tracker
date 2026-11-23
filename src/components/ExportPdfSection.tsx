@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildMedicoesPdf, medicoesFileName } from "@/lib/medicoes-pdf";
+import { downloadBlob } from "@/lib/share-pdf";
 import {
   formatBR,
   monthStartISO,
@@ -55,12 +56,7 @@ export function ExportPdfSection() {
     setBusy(true);
     try {
       const { blob, name } = await gerar();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(blob, name);
       setStatus(`PDF salvo como ${name}.`);
     } finally {
       setBusy(false);
@@ -88,12 +84,7 @@ export function ExportPdfSection() {
         }
         return;
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(blob, name);
       window.open(
         `https://wa.me/?text=${encodeURIComponent(
           `Medições e vendas do Posto 10 — ${formatBR(r.from)} a ${formatBR(r.to)}. Anexe o arquivo ${name} salvo no aparelho.`,

@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Camera, Check, ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Toaster } from "@/components/ui/sonner";
 import {
   actions,
   todayISO,
@@ -16,12 +18,12 @@ import {
 export const Route = createFileRoute("/checklist")({
   head: () => ({
     meta: [
-      { title: "Check List do Gerente — Posto 10" },
+      { title: "CHECK LIST — Posto 10" },
       {
         name: "description",
         content: "Verificações diárias e periódicas de operação, segurança e gestão do posto.",
       },
-      { property: "og:title", content: "Check List do Gerente — Posto 10" },
+      { property: "og:title", content: "CHECK LIST — Posto 10" },
       {
         property: "og:description",
         content: "Checklist editável de operação, segurança e conformidade do posto.",
@@ -38,12 +40,63 @@ const frequencies: Array<{
   label: string;
   shortLabel: string;
 }> = [
-  { id: "diario", label: "Diário", shortLabel: "Hoje" },
-  { id: "semanal", label: "Semanal", shortLabel: "Semana" },
-  { id: "mensal", label: "Mensal", shortLabel: "Mês" },
-  { id: "trimestral", label: "A cada 3 meses", shortLabel: "3 meses" },
-  { id: "semestral", label: "A cada 6 meses", shortLabel: "6 meses" },
+  { id: "diario", label: "DIÁRIO", shortLabel: "HOJE" },
+  { id: "semanal", label: "SEMANAL", shortLabel: "SEMANA" },
+  { id: "mensal", label: "MENSAL", shortLabel: "MÊS" },
+  { id: "trimestral", label: "A CADA 3 MESES", shortLabel: "3 MESES" },
+  { id: "semestral", label: "A CADA 6 MESES", shortLabel: "6 MESES" },
 ];
+
+const noChecklistItems: ChecklistItem[] = [];
+
+function addPhotoWatermark(file: File): Promise<{ fotoUrl: string; fotoDataHora: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Falha ao ler a imagem."));
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("A imagem não retornou um arquivo válido."));
+        return;
+      }
+      const image = new Image();
+      image.onerror = () => reject(new Error("Falha ao processar a imagem."));
+      image.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("Não foi possível preparar a imagem."));
+          return;
+        }
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const fotoDataHora = new Date().toLocaleString("pt-BR");
+        const watermarkHeight = Math.min(80, canvas.height);
+        const textPadding = Math.min(20, Math.max(8, canvas.width * 0.016));
+        context.fillStyle = "rgba(0,0,0,0.5)";
+        context.fillRect(0, canvas.height - watermarkHeight, canvas.width, watermarkHeight);
+        context.fillStyle = "white";
+        context.font = `bold ${Math.max(14, canvas.width * 0.04)}px Arial`;
+        context.textBaseline = "alphabetic";
+        context.fillText(
+          "POSTO 10",
+          textPadding,
+          canvas.height - Math.min(45, watermarkHeight * 0.55),
+        );
+        context.font = `${Math.max(11, canvas.width * 0.03)}px Arial`;
+        context.fillText(
+          fotoDataHora,
+          textPadding,
+          canvas.height - Math.min(15, watermarkHeight * 0.15),
+        );
+        resolve({ fotoUrl: canvas.toDataURL("image/jpeg", 0.8), fotoDataHora });
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function cycleKey(frequency: ChecklistFrequency, iso = todayISO()) {
   const [year, month, day] = iso.split("-").map(Number) as [number, number, number];
@@ -63,11 +116,12 @@ const emptyForm = {
   title: "",
   frequency: "diario" as ChecklistFrequency,
   requirement: "recomendado" as ChecklistItem["requirement"],
+  requerFoto: false,
 };
 
 function ChecklistPage() {
   const state = useAppState();
-  const items = state.checklistItems ?? [];
+  const items = state.checklistItems ?? noChecklistItems;
   const checks = state.checklistChecks ?? {};
   const [active, setActive] = useState<ChecklistFrequency>("diario");
   const [form, setForm] = useState(emptyForm);
@@ -99,13 +153,35 @@ function ChecklistPage() {
       title: item.title,
       frequency: item.frequency,
       requirement: item.requirement,
+      requerFoto: item.requerFoto,
     });
     setEditing(item.id);
     setFormOpen(true);
   };
 
+  const savePhoto = (item: ChecklistItem, file?: File) => {
+    if (!file) return;
+    void addPhotoWatermark(file)
+      .then(({ fotoUrl, fotoDataHora }) => {
+        actions.updateChecklistItem(item.id, { fotoUrl, fotoDataHora });
+        toast.success(`FOTO SALVA PARA: ${item.title.toLocaleUpperCase("pt-BR")}`);
+      })
+      .catch(() => {
+        toast.error("NÃO FOI POSSÍVEL PROCESSAR A FOTO. TENTE NOVAMENTE.");
+      });
+  };
+
+  const toggleItem = (item: ChecklistItem, checked: boolean) => {
+    if (!checked && item.requerFoto && !item.fotoUrl) {
+      toast.error("ESTA TAREFA EXIGE FOTO COMPROBATÓRIA! TIRE A FOTO ANTES DE CONCLUIR.");
+      return;
+    }
+    actions.toggleChecklistItem(item.id, currentKey);
+  };
+
   return (
-    <AppShell title="Check List" subtitle="Rotina do gerente">
+    <AppShell title="CHECK LIST" subtitle="Rotina do gerente">
+      <Toaster position="top-right" />
       <div className="mb-4 grid grid-cols-5 gap-1 rounded-lg bg-muted p-1">
         {frequencies.map((frequency) => (
           <Button
@@ -127,7 +203,7 @@ function ChecklistPage() {
               {frequencies.find((frequency) => frequency.id === active)?.label}
             </h1>
             <p className="text-xs text-muted-foreground">
-              {complete} de {visible.length} concluídos neste ciclo
+              {complete} DE {visible.length} CONCLUÍDOS NESTE CICLO
             </p>
           </div>
           <span className="shrink-0 font-display text-2xl text-primary">{percent}%</span>
@@ -135,7 +211,7 @@ function ChecklistPage() {
         <div
           className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
           role="progressbar"
-          aria-label="Progresso do checklist"
+          aria-label="PROGRESSO DO CHECKLIST"
           aria-valuenow={percent}
           aria-valuemin={0}
           aria-valuemax={100}
@@ -163,34 +239,89 @@ function ChecklistPage() {
             setFormOpen(true);
           }}
         >
-          <Plus className="size-4" /> Adicionar verificação
+          <Plus className="size-4" /> ADICIONAR VERIFICAÇÃO
         </Button>
       )}
 
       <ul className="grid gap-2">
         {visible.map((item) => {
           const checked = checks[item.id] === currentKey;
+          const hasPhoto = Boolean(item.fotoUrl);
           return (
             <li
               key={item.id}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg border border-border bg-card p-3"
+              className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-lg border border-border bg-card p-3"
             >
-              <Button
-                size="icon"
-                variant={checked ? "default" : "outline"}
-                className="mt-0.5 size-9 shrink-0"
-                onClick={() => actions.toggleChecklistItem(item.id, currentKey)}
-                aria-label={checked ? "Desmarcar verificação" : "Marcar verificação"}
+              <span
+                title={
+                  item.requerFoto && !hasPhoto ? "TIRE A FOTO COMPROBATÓRIA PRIMEIRO" : undefined
+                }
+                onClick={() => {
+                  if (item.requerFoto && !hasPhoto && !checked) toggleItem(item, checked);
+                }}
               >
-                <Check className={`size-5 ${checked ? "opacity-100" : "opacity-20"}`} />
-              </Button>
+                <Button
+                  size="icon"
+                  variant={checked ? "default" : "outline"}
+                  disabled={!checked && item.requerFoto && !hasPhoto}
+                  className={`mt-0.5 size-9 shrink-0 ${
+                    checked
+                      ? "bg-green-600 text-white hover:bg-green-700"
+                      : item.requerFoto && !hasPhoto
+                        ? "pointer-events-none cursor-not-allowed opacity-50"
+                        : ""
+                  }`}
+                  onClick={() => toggleItem(item, checked)}
+                  aria-label={checked ? "DESMARCAR VERIFICAÇÃO" : "MARCAR VERIFICAÇÃO"}
+                >
+                  <Check className={`size-5 ${checked ? "opacity-100" : "opacity-20"}`} />
+                </Button>
+              </span>
               <div className="min-w-0">
                 <p
                   className={`text-sm leading-snug text-foreground ${checked ? "line-through opacity-60" : ""}`}
                 >
-                  {item.title}
+                  {item.title.toLocaleUpperCase("pt-BR")}
                 </p>
+                {item.requerFoto ? (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-800">
+                    <Camera className="size-3" /> 📸 EXIGE FOTO
+                  </span>
+                ) : null}
                 <RequirementBadge requirement={item.requirement} />
+                {item.requerFoto ? (
+                  <div className="mt-2 space-y-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[#b7791f] bg-[#b7791f] px-3 py-2 text-xs font-bold text-white">
+                      <Camera className="size-4" /> 📸 TIRAR FOTO OBRIGATÓRIA
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="sr-only"
+                        onChange={(event) => {
+                          savePhoto(item, event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {item.fotoUrl && item.fotoDataHora ? (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={item.fotoUrl}
+                          alt={`FOTO DA VERIFICAÇÃO: ${item.title.toLocaleUpperCase("pt-BR")}`}
+                          className="size-14 rounded border border-[#b7791f] object-cover"
+                        />
+                        <span className="text-[10px] font-semibold text-muted-foreground">
+                          FOTO: {item.fotoDataHora}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] font-semibold text-destructive">
+                        FOTO OBRIGATÓRIA ANTES DE CONCLUIR
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </div>
               <div className="flex shrink-0 flex-col gap-1">
                 <Button
@@ -198,7 +329,7 @@ function ChecklistPage() {
                   variant="ghost"
                   className="size-8"
                   onClick={() => edit(item)}
-                  aria-label="Editar verificação"
+                  aria-label="EDITAR VERIFICAÇÃO"
                 >
                   <Pencil className="size-4" />
                 </Button>
@@ -207,7 +338,7 @@ function ChecklistPage() {
                   variant="ghost"
                   className="size-8"
                   onClick={() => actions.removeChecklistItem(item.id)}
-                  aria-label="Excluir verificação"
+                  aria-label="EXCLUIR VERIFICAÇÃO"
                 >
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
@@ -219,13 +350,13 @@ function ChecklistPage() {
 
       {visible.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-          Nenhuma verificação nesta frequência.
+          NENHUMA VERIFICAÇÃO NESTA FREQUÊNCIA.
         </p>
       ) : null}
 
       <p className="mt-5 rounded-lg bg-muted p-3 text-[11px] leading-relaxed text-muted-foreground">
-        Prazos de aferição, estanqueidade e controles ambientais podem variar conforme os
-        equipamentos, a licença e as regras estaduais ou municipais. Confirme as exigências locais.
+        PRAZOS DE AFERIÇÃO, ESTANQUEIDADE E CONTROLES AMBIENTAIS PODEM VARIAR CONFORME OS
+        EQUIPAMENTOS, A LICENÇA E AS REGRAS ESTADUAIS OU MUNICIPAIS. CONFIRME AS EXIGÊNCIAS LOCAIS.
       </p>
     </AppShell>
   );
@@ -234,10 +365,10 @@ function ChecklistPage() {
 function RequirementBadge({ requirement }: { requirement: ChecklistItem["requirement"] }) {
   const label =
     requirement === "obrigatorio"
-      ? "Obrigatório"
+      ? "OBRIGATÓRIO"
       : requirement === "condicional"
-        ? "Conforme licença/regra local"
-        : "Boa prática";
+        ? "CONFORME LICENÇA/REGRA LOCAL"
+        : "BOA PRÁTICA";
   const color =
     requirement === "obrigatorio"
       ? "text-destructive"
@@ -268,25 +399,25 @@ function ChecklistForm({
     <section className="mb-4 rounded-lg border border-border bg-card p-4">
       <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         <h2 className="truncate font-display text-lg text-foreground">
-          {editing ? "Editar verificação" : "Nova verificação"}
+          {editing ? "EDITAR VERIFICAÇÃO" : "NOVA VERIFICAÇÃO"}
         </h2>
-        <Button size="icon" variant="ghost" onClick={onClose} aria-label="Fechar formulário">
+        <Button size="icon" variant="ghost" onClick={onClose} aria-label="FECHAR FORMULÁRIO">
           <X className="size-4" />
         </Button>
       </div>
       <div className="grid gap-3">
         <div className="grid gap-1.5">
-          <Label htmlFor="check-title">O que deve ser verificado?</Label>
+          <Label htmlFor="check-title">O QUE DEVE SER VERIFICADO?</Label>
           <Input
             id="check-title"
             value={form.title}
             onChange={(event) => onChange({ ...form, title: event.target.value })}
-            placeholder="Digite a verificação"
+            placeholder="DIGITE A VERIFICAÇÃO"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="check-frequency">Frequência</Label>
+            <Label htmlFor="check-frequency">FREQUÊNCIA</Label>
             <div className="relative">
               <select
                 id="check-frequency"
@@ -306,7 +437,7 @@ function ChecklistForm({
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="check-requirement">Classificação</Label>
+            <Label htmlFor="check-requirement">CLASSIFICAÇÃO</Label>
             <div className="relative">
               <select
                 id="check-requirement"
@@ -319,16 +450,41 @@ function ChecklistForm({
                   })
                 }
               >
-                <option value="obrigatorio">Obrigatório</option>
-                <option value="condicional">Regra local</option>
-                <option value="recomendado">Boa prática</option>
+                <option value="obrigatorio">OBRIGATÓRIO</option>
+                <option value="condicional">REGRA LOCAL</option>
+                <option value="recomendado">BOA PRÁTICA</option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-3 size-4 text-muted-foreground" />
             </div>
           </div>
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={form.requerFoto}
+          onClick={() => onChange({ ...form, requerFoto: !form.requerFoto })}
+          className="flex w-full items-center justify-between gap-4 rounded-lg border border-border bg-background p-3 text-left"
+        >
+          <span>
+            <span className="block text-sm font-bold">EXIGIR FOTO COMPROBATÓRIA? *</span>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              SE MARCADO, SÓ SERÁ POSSÍVEL CONCLUIR COM FOTO
+            </span>
+          </span>
+          <span
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+              form.requerFoto ? "bg-[#b7791f]" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform ${
+                form.requerFoto ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+        </button>
         <Button onClick={onSave}>
-          {editing ? "Salvar alterações" : "Adicionar ao check list"}
+          {editing ? "SALVAR ALTERAÇÕES" : "ADICIONAR AO CHECK LIST"}
         </Button>
       </div>
     </section>

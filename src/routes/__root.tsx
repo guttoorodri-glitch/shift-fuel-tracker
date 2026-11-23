@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
+  Navigate,
   createRootRouteWithContext,
   useRouter,
   useLocation,
@@ -12,14 +13,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { planAllows, useSubscription } from "@/hooks/useSubscription";
-import {
-  BlockedScreen,
-  GraceModal,
-  LoginScreen,
-  PaymentScreen,
-  SubscriptionBanner,
-} from "@/hooks/subscription-ui";
+import { roleAllows, useSubscription } from "@/hooks/useSubscription";
+import { ConsentScreen, LoginScreen, VisitorExpiredScreen } from "@/hooks/subscription-access-ui";
 
 function NotFoundComponent() {
   return (
@@ -43,12 +38,13 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+  const normalizedError = error instanceof Error ? error : new Error(String(error));
+  console.error(normalizedError);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+    reportLovableError(normalizedError, { boundary: "tanstack_root_error_component" });
+  }, [normalizedError]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -86,7 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#101418" },
+      { name: "theme-color", content: "#000000" },
       { title: "Posto 10 — Controle de Vendas e Turnos" },
       {
         name: "description",
@@ -126,7 +122,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" translate="no">
       <head>
         <HeadContent />
       </head>
@@ -141,9 +137,38 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((error) => {
+      console.error("Não foi possível registrar o service worker.", error);
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AppAccessGate />
+      <div
+        onChangeCapture={(event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement))
+            return;
+          if (
+            target instanceof HTMLInputElement &&
+            !["text", "search", "email", "tel", "url", "password"].includes(target.type)
+          )
+            return;
+          if ((event.nativeEvent as InputEvent).isComposing) return;
+          const uppercase = target.value.toLocaleUpperCase("pt-BR");
+          if (uppercase === target.value) return;
+          const selectionStart = target.selectionStart;
+          const selectionEnd = target.selectionEnd;
+          target.value = uppercase;
+          if (selectionStart !== null && selectionEnd !== null) {
+            target.setSelectionRange(selectionStart, selectionEnd);
+          }
+        }}
+      >
+        <AppAccessGate />
+      </div>
     </QueryClientProvider>
   );
 }
@@ -151,6 +176,7 @@ function RootComponent() {
 function AppAccessGate() {
   const subscription = useSubscription();
   const location = useLocation();
+  const publicPaths = ["/", "/login", "/planos", "/cadastro", "/checkout", "/admin-dev"];
 
   if (subscription.authLoading) {
     return (
@@ -159,18 +185,52 @@ function AppAccessGate() {
       </div>
     );
   }
+  if (publicPaths.includes(location.pathname)) return <Outlet />;
+  if (subscription.visitorExpired) {
+    return <VisitorExpiredScreen onBackToLogin={subscription.returnToLogin} />;
+  }
   if (!subscription.isAuthenticated) return <LoginScreen subscription={subscription} />;
-  if (subscription.needsPayment) return <PaymentScreen subscription={subscription} />;
-  if (subscription.isBlocked) return <BlockedScreen subscription={subscription} />;
-  if (!subscription.isAdmin && !planAllows(subscription.subscriptionPlan, location.pathname)) {
-    return <PaymentScreen subscription={subscription} />;
+  if (subscription.isAdmin) return <Outlet />;
+  if (subscription.requiresConsent) {
+    return (
+      <ConsentScreen
+        onAccept={subscription.acceptConsent}
+        onDecline={subscription.returnToLogin}
+        error={subscription.authError}
+      />
+    );
+  }
+  if (!roleAllows(subscription.role, location.pathname, subscription.permissions)) {
+    const preferredPaths =
+      subscription.role === "FRENTISTA"
+        ? ["/fechamento-caixa", "/fiscalizacao", "/lgpd"]
+        : subscription.role === "TROCA-OLEO"
+          ? ["/troca-oleo", "/fiscalizacao", "/lgpd"]
+          : ["/dashboard", "/lgpd"];
+    const defaultPath =
+      preferredPaths.find((path) =>
+        roleAllows(subscription.role, path, subscription.permissions),
+      ) ?? "/lgpd";
+    return <Navigate to={defaultPath} replace />;
   }
 
   return (
     <>
-      <SubscriptionBanner subscription={subscription} />
+      {subscription.passwordGraceSeconds > 0 ? (
+        <div
+          role="alert"
+          className="sticky top-0 z-[55] flex flex-wrap items-center justify-center gap-2 bg-red-700 px-4 py-2 text-center text-sm font-semibold text-white"
+        >
+          SENHA INCORRETA: ACESSO TEMPORÁRIO POR{" "}
+          {Math.floor(subscription.passwordGraceSeconds / 60)}:
+          {String(subscription.passwordGraceSeconds % 60).padStart(2, "0")}. APÓS ESSE PRAZO, ENTRE
+          COM A SENHA CORRETA.
+          <button type="button" className="underline" onClick={() => void subscription.logout()}>
+            SAIR E CORRIGIR SENHA
+          </button>
+        </div>
+      ) : null}
       <Outlet />
-      <GraceModal subscription={subscription} />
     </>
   );
 }

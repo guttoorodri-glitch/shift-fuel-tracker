@@ -149,10 +149,10 @@
   --sidebar-ring: oklch(0.78 0.15 78);
 }
 
-
 @layer base {
   * {
     border-color: var(--color-border);
+    text-transform: uppercase !important;
   }
 
   body {
@@ -167,4 +167,32 @@
     font-family: var(--font-display);
     letter-spacing: 0.01em;
   }
+}
+
+@keyframes fiscalizacao-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.fiscalizacao-blink {
+  animation: fiscalizacao-blink 5s infinite;
+}
+
+@keyframes fiscalizacao-date-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.fiscalizacao-date-required {
+  animation: fiscalizacao-date-blink 1.2s infinite;
 }

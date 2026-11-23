@@ -17,6 +17,7 @@ import {
   type CalibrationItem,
 } from "@/lib/store";
 import { afericaoFileName, buildAfericaoPdf } from "@/lib/afericao-pdf";
+import { downloadBlob } from "@/lib/share-pdf";
 
 export const Route = createFileRoute("/afericao")({
   head: () => ({
@@ -109,12 +110,7 @@ function ExportButtons({ state, calibration }: { state: AppState; calibration: C
     try {
       const blob = await gerar();
       const name = afericaoFileName(calibration);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(blob, name);
       setStatus(`PDF salvo como ${name}.`);
     } finally {
       setBusy(false);
@@ -151,12 +147,7 @@ function ExportButtons({ state, calibration }: { state: AppState; calibration: C
           }
           return;
         }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = name;
-        a.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        downloadBlob(blob, name);
         window.open(
           `https://wa.me/?text=${encodeURIComponent(
             `Aferição do Posto 10 — ${formatBR(calibration.date)}. Anexe o arquivo ${name} salvo no aparelho.`,

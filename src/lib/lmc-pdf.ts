@@ -97,6 +97,7 @@ export async function buildLmcPdf(
     let x = left;
     values.forEach((value, valueIndex) => {
       const column = columns[valueIndex];
+      if (!column) return;
       const alignRight = valueIndex >= 2;
       doc.text(value, alignRight ? x + column.width - 4 : x + 4, y + 14, {
         align: alignRight ? "right" : "left",

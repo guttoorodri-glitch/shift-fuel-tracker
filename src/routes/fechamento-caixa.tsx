@@ -1,110 +1,628 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
-import { Camera, Plus, Save, WalletCards } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FileDown, Plus, Save, Share2, Trash2, WalletCards } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { readFechamentoPhoto, type OcrRecebimento, type OcrVenda } from "@/lib/fechamento-ocr";
-import { actions, todayISO, useAppState, type FechamentoItem } from "@/lib/store";
+import { Label } from "@/components/ui/label";
+import { downloadBlob, sharePdf } from "@/lib/share-pdf";
+import { buildFechamentoCaixaPdf, fechamentoCaixaFileName } from "@/lib/fechamento-caixa-pdf";
+import { getPersistedRole, useSubscription } from "@/hooks/useSubscription";
+import {
+  actions,
+  formatBR,
+  todayISO,
+  useAppState,
+  uid,
+  type Fechamento,
+  type FechamentoItem,
+} from "@/lib/store";
 
 export const Route = createFileRoute("/fechamento-caixa")({ component: FechamentoCaixaPage });
 
-type VendaRow = OcrVenda & { id: string };
-type RecebimentoRow = OcrRecebimento & { id: string };
+type FuelEntry = { liters: string; unitPrice: string };
+type ProductEntry = { id: string; name: string; value: string };
 
-const money = (value: number) => value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const numeric = (value: string) => Number(value.replace(",", ".")) || 0;
+const money = (value: number, digits = 2) =>
+  value.toLocaleString("pt-BR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
+function parseAmount(value: string): number | null {
+  const trimmed = value.trim().replace(/[R$\s]/g, "");
+  if (!trimmed) return null;
+  const normalized = trimmed.includes(",")
+    ? trimmed.replace(/\./g, "").replace(",", ".")
+    : /^\d{1,3}(\.\d{3})+$/.test(trimmed)
+      ? trimmed.replace(/\./g, "")
+      : trimmed;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function moneyInput(value: string, digits: number) {
+  const parsed = parseAmount(value);
+  return parsed === null ? "" : money(parsed, digits);
+}
 
 function FechamentoCaixaPage() {
   const state = useAppState();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const subscription = useSubscription();
+  const isManager = (subscription.role ?? getPersistedRole()) === "GERENTE";
+  const today = todayISO();
+  const shifts = Array.from({ length: state.shifts }, (_, index) => String(index + 1));
+  const activeForms = (state.formasPagamento ?? []).filter((form) => form.ativo);
   const [date, setDate] = useState(todayISO());
   const [turno, setTurno] = useState("1");
-  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
-  const [vendas, setVendas] = useState<VendaRow[]>([]);
-  const [recebimentos, setRecebimentos] = useState<RecebimentoRow[]>([]);
-  const activeForms = (state.formasPagamento ?? []).filter((forma) => forma.ativo);
-  const prices = state.precosCombustivel ?? [];
-  const priceFor = (id: string) => prices.find((item) => item.combustivelId === id)?.preco ?? 0;
-  const totalVendas = useMemo(() => vendas.reduce((sum, item) => sum + item.litros * priceFor(state.tanks.find((tank) => tank.name === item.produto)?.id ?? ""), 0), [vendas, prices, state.tanks]);
-  const totalRecebido = useMemo(() => recebimentos.reduce((sum, item) => sum + item.valor, 0), [recebimentos]);
-  const diferenca = totalRecebido - totalVendas;
-  const status = diferenca === 0 ? "ok" : diferenca < 0 ? "faltando" : "sobrando";
+  const [fuelEntries, setFuelEntries] = useState<Record<string, FuelEntry>>({});
+  const [products, setProducts] = useState<ProductEntry[]>([]);
+  const [paymentValues, setPaymentValues] = useState<Record<string, string>>({});
+  const [cashierName, setCashierName] = useState("");
+  const [signature, setSignature] = useState("");
+  const [newFormName, setNewFormName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const processPhoto = async (file: File) => {
-    setPhotoStatus("Lendo relatório... 0%");
+  const savedClose = (state.fechamentos ?? []).find(
+    (closing) => closing.data === date && closing.turno === turno,
+  );
+
+  const configuredPrice = (nozzleId: string) => {
+    const nozzle = (state.nozzles ?? []).find((item) => item.id === nozzleId);
+    const tank = state.tanks.find(
+      (item) =>
+        item.id === nozzle?.tankId ||
+        item.name.toLocaleLowerCase("pt-BR") === nozzle?.fuel.toLocaleLowerCase("pt-BR"),
+    );
+    return state.precosCombustivel?.find((item) => item.combustivelId === tank?.id)?.preco ?? 0;
+  };
+
+  useEffect(() => {
+    const fuelItems =
+      savedClose?.itens.filter((item) => item.tipo === "combustivel" || item.tipo === "venda") ??
+      [];
+    const nextFuel: Record<string, FuelEntry> = {};
+    for (const nozzle of state.nozzles ?? []) {
+      const saved = fuelItems.find((item) => item.bicoId === nozzle.id);
+      nextFuel[nozzle.id] = {
+        liters: saved?.litros === undefined ? "" : String(saved.litros),
+        unitPrice:
+          saved?.preco === undefined
+            ? configuredPrice(nozzle.id)
+              ? money(configuredPrice(nozzle.id), 3)
+              : ""
+            : money(saved.preco, 3),
+      };
+    }
+    setFuelEntries(nextFuel);
+    setProducts(
+      (savedClose?.itens ?? [])
+        .filter((item) => item.tipo === "produto")
+        .map((item) => ({ id: item.id, name: item.produto ?? "", value: money(item.valor) })),
+    );
+    const nextPayments: Record<string, string> = {};
+    for (const form of activeForms) {
+      const saved = savedClose?.itens.find(
+        (item) => item.tipo === "recebimento" && item.formaId === form.id,
+      );
+      nextPayments[form.id] = saved ? money(saved.valor) : "0,000";
+    }
+    setPaymentValues(nextPayments);
+    setCashierName(savedClose?.frentistaNome ?? "");
+    setSignature(savedClose?.assinatura ?? "");
+    setError(null);
+    setStatusMessage(null);
+  }, [date, turno, savedClose]);
+
+  const fuelTotal = useMemo(
+    () =>
+      Object.values(fuelEntries).reduce((sum, entry) => {
+        const liters = parseAmount(entry.liters) ?? 0;
+        const unitPrice = parseAmount(entry.unitPrice) ?? 0;
+        return sum + liters * unitPrice;
+      }, 0),
+    [fuelEntries],
+  );
+  const productsTotal = useMemo(
+    () => products.reduce((sum, entry) => sum + (parseAmount(entry.value) ?? 0), 0),
+    [products],
+  );
+  const totalSales = fuelTotal + productsTotal;
+  const totalReceived = activeForms.reduce(
+    (sum, form) => sum + (parseAmount(paymentValues[form.id] ?? "") ?? 0),
+    0,
+  );
+  const difference = Math.round((totalReceived - totalSales) * 100) / 100;
+  const closingStatus: Fechamento["status"] =
+    difference === 0 ? "ok" : difference < 0 ? "faltando" : "sobrando";
+
+  const addProduct = () =>
+    setProducts((entries) => [...entries, { id: uid(), name: "", value: "" }]);
+  const updateProduct = (id: string, patch: Partial<ProductEntry>) =>
+    setProducts((entries) =>
+      entries.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
+    );
+
+  const addPaymentForm = () => {
+    const name = newFormName.trim().toLocaleUpperCase("pt-BR");
+    if (!name || activeForms.some((form) => form.nome.toLocaleUpperCase("pt-BR") === name)) return;
+    const id = actions.addFormaPagamento(name);
+    setPaymentValues((current) => ({ ...current, [id]: "0,000" }));
+    setNewFormName("");
+  };
+
+  const createClosing = (): Omit<Fechamento, "id"> | null => {
+    const missing: string[] = [];
+    if (!(state.nozzles ?? []).length) missing.push("Cadastre os bicos no menu Aferição");
+    if (!cashierName.trim()) missing.push("Informe o frentista caixa");
+    if (!signature.trim()) missing.push("Preencha a assinatura do frentista caixa");
+    for (const nozzle of state.nozzles ?? []) {
+      const entry = fuelEntries[nozzle.id];
+      if (parseAmount(entry?.liters ?? "") === null)
+        missing.push(`Litros vendidos do ${nozzle.name}`);
+      if (parseAmount(entry?.unitPrice ?? "") === null)
+        missing.push(`Preço por litro do ${nozzle.name}`);
+    }
+    for (const product of products) {
+      if (!product.name.trim() || parseAmount(product.value) === null) {
+        missing.push("Complete nome e valor de cada produto lançado");
+      }
+    }
+    for (const form of activeForms) {
+      if (parseAmount(paymentValues[form.id] ?? "0,000") === null) {
+        missing.push(`Informe o valor recebido em ${form.nome}`);
+      }
+    }
+    if (missing.length) {
+      setError(
+        `Confira o fechamento: ${missing.slice(0, 6).join("; ")}${missing.length > 6 ? `; e mais ${missing.length - 6} item(ns)` : ""}.`,
+      );
+      return null;
+    }
+
+    const items: FechamentoItem[] = [
+      ...(state.nozzles ?? []).map((nozzle) => {
+        const entry = fuelEntries[nozzle.id] as FuelEntry;
+        const liters = parseAmount(entry.liters) ?? 0;
+        const price = parseAmount(entry.unitPrice) ?? 0;
+        return {
+          id: `bico-${nozzle.id}`,
+          tipo: "combustivel" as const,
+          bicoId: nozzle.id,
+          produto: nozzle.name,
+          litros: liters,
+          preco: price,
+          valor: Math.round(liters * price * 100) / 100,
+        };
+      }),
+      ...products.map((product) => ({
+        id: product.id,
+        tipo: "produto" as const,
+        produto: product.name.trim(),
+        valor: Math.round((parseAmount(product.value) ?? 0) * 100) / 100,
+      })),
+      ...activeForms.map((form) => ({
+        id: `forma-${form.id}`,
+        tipo: "recebimento" as const,
+        formaId: form.id,
+        formaNome: form.nome,
+        valor: Math.round((parseAmount(paymentValues[form.id] ?? "0,000") ?? 0) * 100) / 100,
+      })),
+    ];
+    const roundedSales = Math.round(totalSales * 100) / 100;
+    const roundedReceived = Math.round(totalReceived * 100) / 100;
+    const differenceValue = Math.round((roundedReceived - roundedSales) * 100) / 100;
+    return {
+      data: date,
+      turno,
+      frentistaNome: cashierName.trim(),
+      assinatura: signature.trim(),
+      totalVendas: roundedSales,
+      totalRecebido: roundedReceived,
+      diferenca: differenceValue,
+      status: differenceValue === 0 ? "ok" : differenceValue < 0 ? "faltando" : "sobrando",
+      itens: items,
+    };
+  };
+
+  const save = () => {
+    const closing = createClosing();
+    if (!closing) return;
     try {
-      const result = await readFechamentoPhoto(file, state.tanks, activeForms, (progress) => setPhotoStatus(`Lendo relatório... ${Math.round(progress * 100)}%`));
-      setVendas(result.vendas.map((item, index) => ({ ...item, id: `ocr-venda-${index}` })));
-      setRecebimentos(result.recebimentos.map((item, index) => ({ ...item, id: `ocr-recebimento-${index}` })));
-      setPhotoStatus(`Leitura concluída. ${result.vendas.length + result.recebimentos.length} linhas encontradas; confira os valores.`);
+      actions.addFechamento(closing);
+      setError(null);
+      setStatusMessage(`Fechamento do turno ${turno} salvo.`);
     } catch {
-      setPhotoStatus("Não foi possível ler a foto. Adicione as linhas manualmente.");
+      setError(
+        "Não foi possível salvar o fechamento. Verifique o espaço de armazenamento do aparelho.",
+      );
     }
   };
 
-  const addVenda = () => setVendas((rows) => [...rows, { id: `venda-${Date.now()}`, produto: state.tanks[0]?.name ?? "", litros: 0, confianca: 1 }]);
-  const addRecebimento = () => {
-    const forma = activeForms[0];
-    if (forma) setRecebimentos((rows) => [...rows, { id: `recebimento-${Date.now()}`, forma_id: forma.id, forma_nome: forma.nome, valor: 0, confianca: 1 }]);
+  const exportPdf = async (share: boolean) => {
+    const closing = createClosing();
+    if (!closing) return;
+    setBusy(true);
+    setError(null);
+    if (share) {
+      try {
+        actions.addFechamento(closing);
+        const existingId = savedClose?.id ?? "preview";
+        const blob = buildFechamentoCaixaPdf(state, { ...closing, id: existingId });
+        const filename = fechamentoCaixaFileName({ ...closing, id: existingId });
+        setStatusMessage(
+          await sharePdf(blob, filename, `Fechamento de caixa ${formatBR(date)}, turno ${turno}.`),
+        );
+      } catch {
+        setError("Não foi possível compartilhar. Tente salvar o PDF e anexá-lo no WhatsApp.");
+      } finally {
+        setBusy(false);
+      }
+    } else {
+      try {
+        actions.addFechamento(closing);
+        const existingId = savedClose?.id ?? "preview";
+        const blob = buildFechamentoCaixaPdf(state, { ...closing, id: existingId });
+        const filename = fechamentoCaixaFileName({ ...closing, id: existingId });
+        downloadBlob(blob, filename);
+        setStatusMessage(`PDF salvo como ${filename}.`);
+      } catch {
+        setError("Não foi possível gerar ou salvar o PDF do fechamento.");
+      } finally {
+        setBusy(false);
+      }
+    }
   };
-  const save = () => {
-    const itens: FechamentoItem[] = [
-      ...vendas.map((item) => ({ id: item.id, tipo: "venda" as const, produto: item.produto, litros: item.litros, preco: priceFor(state.tanks.find((tank) => tank.name === item.produto)?.id ?? ""), valor: item.litros * priceFor(state.tanks.find((tank) => tank.name === item.produto)?.id ?? "") })),
-      ...recebimentos.map((item) => ({ id: item.id, tipo: "recebimento" as const, formaId: item.forma_id, formaNome: item.forma_nome, valor: item.valor })),
-    ];
-    actions.addFechamento({ data: date, turno, frentistaId: undefined, totalVendas, totalRecebido, diferenca, status, itens });
-    setPhotoStatus("Fechamento salvo no histórico.");
-  };
+
+  const statusClass =
+    closingStatus === "faltando"
+      ? "bg-red-600 text-white"
+      : closingStatus === "sobrando"
+        ? "bg-blue-600 text-white"
+        : "bg-green-600 text-white";
 
   return (
-    <AppShell title="Fechamento de Caixa" subtitle="Conferência por foto e formas de recebimento">
-      <div className="w-full space-y-4 pb-28">
-        <section className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2"><WalletCards className="size-5 text-primary" /><h2 className="font-display text-xl text-foreground">Novo fechamento</h2></div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <label className="text-xs text-muted-foreground">Data<Input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="mt-1" /></label>
-            <label className="text-xs text-muted-foreground">Turno<Input value={turno} onChange={(event) => setTurno(event.target.value)} className="mt-1" /></label>
+    <AppShell title="FECHAMENTO CAIXA" subtitle="Conferência por data e turno">
+      <div className="w-full space-y-4 pb-6">
+        <section className="space-y-4 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2">
+            <WalletCards className="size-5 text-primary" />
+            <h2 className="font-display text-xl text-foreground">Identificação do fechamento</h2>
           </div>
-          <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void processPhoto(file); }} />
-          <Button className="mt-4 h-14 w-full text-base" onClick={() => inputRef.current?.click()}><Camera className="size-5" /> TIRAR FOTO DO RELATÓRIO</Button>
-          {photoStatus ? <p className="mt-3 text-xs text-muted-foreground">{photoStatus}</p> : null}
-        </section>
-
-        <section className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between gap-2"><h2 className="font-display text-lg text-foreground">Tabela A · Vendas</h2><Button size="sm" variant="outline" onClick={addVenda}><Plus className="size-4" /> Adicionar</Button></div>
-          <div className="mt-3 space-y-3">
-            {vendas.map((item) => <div key={item.id} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1.4fr_0.8fr_0.8fr_0.9fr] sm:items-center">
-              <select className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={item.produto} onChange={(event) => setVendas((rows) => rows.map((row) => row.id === item.id ? { ...row, produto: event.target.value } : row))}>{state.tanks.map((tank) => <option key={tank.id}>{tank.name}</option>)}</select>
-              <Input type="number" step="0.01" value={item.litros} onChange={(event) => setVendas((rows) => rows.map((row) => row.id === item.id ? { ...row, litros: numeric(event.target.value) } : row))} placeholder="Litros" />
-              <span className="text-sm text-muted-foreground">Preço: {money(priceFor(state.tanks.find((tank) => tank.name === item.produto)?.id ?? ""))}</span>
-              <strong className="text-sm text-foreground">Total: {money(item.litros * priceFor(state.tanks.find((tank) => tank.name === item.produto)?.id ?? ""))}</strong>
-            </div>)}
-            {vendas.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma venda. Use a foto ou adicione uma linha.</p> : null}
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center justify-between gap-2"><h2 className="font-display text-lg text-foreground">Tabela B · Recebimentos</h2><Button size="sm" variant="outline" onClick={addRecebimento}><Plus className="size-4" /> Adicionar</Button></div>
-          <div className="mt-3 space-y-3">
-            {recebimentos.map((item) => <div key={item.id} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_1fr]">
-              <select className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground" value={item.forma_id} onChange={(event) => { const forma = activeForms.find((option) => option.id === event.target.value); if (forma) setRecebimentos((rows) => rows.map((row) => row.id === item.id ? { ...row, forma_id: forma.id, forma_nome: forma.nome } : row)); }}>
-                {activeForms.map((forma) => <option key={forma.id} value={forma.id}>{forma.nome}</option>)}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Data</Label>
+              <Input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                disabled={isManager}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Turno</Label>
+              <select
+                value={turno}
+                onChange={(event) => setTurno(event.target.value)}
+                className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              >
+                {shifts.map((shift) => (
+                  <option key={shift} value={shift}>
+                    Turno {shift}
+                  </option>
+                ))}
               </select>
-              <Input type="number" step="0.01" value={item.valor} onChange={(event) => setRecebimentos((rows) => rows.map((row) => row.id === item.id ? { ...row, valor: numeric(event.target.value) } : row))} placeholder="Valor recebido" />
-            </div>)}
-            {recebimentos.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum recebimento. Use a foto ou adicione uma linha.</p> : null}
+            </div>
+            <div>
+              <Label>Frentista caixa</Label>
+              <Input
+                value={cashierName}
+                onChange={(event) => setCashierName(event.target.value)}
+                className="mt-1"
+                placeholder="Nome do responsável pelo caixa"
+              />
+            </div>
+            <div>
+              <Label>Assinatura do frentista caixa</Label>
+              <Input
+                value={signature}
+                onChange={(event) => setSignature(event.target.value)}
+                className="mt-1"
+                placeholder="Digite o nome para assinatura no recibo"
+              />
+            </div>
           </div>
-          <Button variant="ghost" className="mt-3" onClick={() => window.location.assign("/configuracoes/formas-pagamento")}><Plus className="size-4" /> Adicionar outra forma na hora</Button>
         </section>
-      </div>
 
-      <footer className="fixed bottom-0 left-0 z-20 w-full border-t border-border bg-card/95 p-3 shadow-lg backdrop-blur md:pl-64">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-foreground"><span>Vendas: <strong>{money(totalVendas)}</strong></span><span>Recebido: <strong>{money(totalRecebido)}</strong></span><span className={status === "ok" ? "font-bold text-green-600" : status === "faltando" ? "font-bold text-red-600" : "font-bold text-amber-600"}>{status === "ok" ? "CAIXA OK ✅" : status === "faltando" ? `FALTANDO ${money(Math.abs(diferenca))}` : `SOBRANDO ${money(diferenca)}`}</span></div>
-          <Button onClick={save}><Save className="size-4" /> Salvar Fechamento</Button>
-        </div>
-      </footer>
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div>
+            <h2 className="font-display text-lg text-foreground">Vendas de combustível por bico</h2>
+            <p className="text-xs text-muted-foreground">
+              Bicos cadastrados em Aferição. Informe litros e preço de venda por litro.
+            </p>
+          </div>
+          {(state.nozzles ?? []).length === 0 ? (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-foreground">
+              Cadastre os bicos no menu Aferição para iniciar o fechamento.
+            </p>
+          ) : null}
+          {(state.nozzles ?? []).map((nozzle) => {
+            const entry = fuelEntries[nozzle.id] ?? {
+              liters: "",
+              unitPrice: configuredPrice(nozzle.id) ? money(configuredPrice(nozzle.id), 3) : "",
+            };
+            const tank = state.tanks.find((item) => item.id === nozzle.tankId);
+            const rowTotal = (parseAmount(entry.liters) ?? 0) * (parseAmount(entry.unitPrice) ?? 0);
+            return (
+              <div
+                key={nozzle.id}
+                className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[1.2fr_1fr_1fr_1fr] sm:items-end"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">{nozzle.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {tank?.name ?? nozzle.fuel}
+                  </p>
+                </div>
+                <div>
+                  <Label>Litros vendidos</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={entry.liters}
+                    onChange={(event) =>
+                      setFuelEntries((current) => ({
+                        ...current,
+                        [nozzle.id]: { ...entry, liters: event.target.value },
+                      }))
+                    }
+                    className="mt-1"
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <Label>Valor por litro (R$)</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={entry.unitPrice}
+                    onChange={(event) =>
+                      setFuelEntries((current) => ({
+                        ...current,
+                        [nozzle.id]: { ...entry, unitPrice: event.target.value },
+                      }))
+                    }
+                    onBlur={() =>
+                      setFuelEntries((current) => ({
+                        ...current,
+                        [nozzle.id]: { ...entry, unitPrice: moneyInput(entry.unitPrice, 3) },
+                      }))
+                    }
+                    className="mt-1"
+                    placeholder="0,000"
+                  />
+                </div>
+                <div className="text-sm text-foreground">
+                  Total do bico:{" "}
+                  <strong>
+                    {rowTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </strong>
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-right text-sm font-semibold text-foreground">
+            Total combustíveis:{" "}
+            {fuelTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </p>
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="font-display text-lg text-foreground">Mini mercado e produtos</h2>
+              <p className="text-xs text-muted-foreground">
+                Lance manualmente os valores vendidos no turno.
+              </p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={addProduct}>
+              <Plus className="size-4" /> Adicionar produto
+            </Button>
+          </div>
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            >
+              <div>
+                <Label>Produto / descrição</Label>
+                <Input
+                  value={product.name}
+                  onChange={(event) => updateProduct(product.id, { name: event.target.value })}
+                  className="mt-1"
+                  placeholder="Ex.: vendas da conveniência"
+                />
+              </div>
+              <div>
+                <Label>Valor vendido (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={product.value}
+                  onChange={(event) => updateProduct(product.id, { value: event.target.value })}
+                  onBlur={() => updateProduct(product.id, { value: moneyInput(product.value, 2) })}
+                  className="mt-1"
+                  placeholder="0,00"
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Remover produto"
+                onClick={() =>
+                  setProducts((current) => current.filter((item) => item.id !== product.id))
+                }
+              >
+                <Trash2 className="size-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
+          <p className="text-right text-sm font-semibold text-foreground">
+            Total mini mercado e produtos:{" "}
+            {productsTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-right">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            TOTAL VENDIDO NO TURNO
+          </p>
+          <p className="font-display text-2xl tabular-nums text-foreground">
+            {totalSales.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </p>
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div>
+            <h2 className="font-display text-lg text-foreground">Formas de recebimento</h2>
+            <p className="text-xs text-muted-foreground">
+              Preencha todas as formas ativas. Informe 0,00 quando não houve recebimento.
+            </p>
+          </div>
+          {activeForms.map((form) => (
+            <div key={form.id} className="grid gap-2 sm:grid-cols-[1fr_1fr] sm:items-center">
+              <Label className="text-sm text-foreground">{form.nome}</Label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={paymentValues[form.id] ?? ""}
+                onChange={(event) =>
+                  setPaymentValues((current) => ({ ...current, [form.id]: event.target.value }))
+                }
+                onBlur={() =>
+                  setPaymentValues((current) => ({
+                    ...current,
+                    [form.id]: moneyInput(current[form.id] ?? "", 2),
+                  }))
+                }
+                placeholder="0,00"
+                aria-label={`Valor recebido em ${form.nome}`}
+              />
+            </div>
+          ))}
+          {!isManager ? (
+            <form
+              className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                addPaymentForm();
+              }}
+            >
+              <Input
+                value={newFormName}
+                onChange={(event) => setNewFormName(event.target.value)}
+                placeholder="Nova forma de recebimento"
+              />
+              <Button type="submit" variant="outline" className="shrink-0">
+                <Plus className="size-4" /> Adicionar forma
+              </Button>
+            </form>
+          ) : null}
+          <p className="text-right text-sm font-semibold text-foreground">
+            Total recebido:{" "}
+            {totalReceived.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </p>
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1 text-sm text-foreground">
+              <p>
+                Total vendido no turno:{" "}
+                <strong>
+                  {totalSales.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </strong>
+              </p>
+              <p>
+                Total recebido:{" "}
+                <strong>
+                  {totalReceived.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </strong>
+              </p>
+            </div>
+            <div className={`rounded-md px-4 py-2 text-center text-sm font-bold ${statusClass}`}>
+              {closingStatus === "ok"
+                ? "CAIXA CONFERIDO"
+                : closingStatus === "faltando"
+                  ? `FALTA DE CAIXA · ${Math.abs(difference).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
+                  : `SOBRA DE CAIXA · ${difference.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+            </div>
+          </div>
+          {error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+          {statusMessage ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {statusMessage}
+            </p>
+          ) : null}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button type="button" onClick={save}>
+              <Save className="size-4" /> Salvar fechamento
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void exportPdf(false)}
+            >
+              <FileDown className="size-4" /> Salvar PDF
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => void exportPdf(true)}
+            >
+              <Share2 className="size-4" /> Compartilhar WhatsApp
+            </Button>
+          </div>
+        </section>
+
+        {(state.fechamentos ?? []).some((closing) => !isManager || closing.data === today) ? (
+          <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+            <h2 className="font-display text-lg text-foreground">Histórico de fechamentos</h2>
+            {(state.fechamentos ?? [])
+              .filter((closing) => !isManager || closing.data === today)
+              .map((closing) => (
+                <div
+                  key={closing.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm"
+                >
+                  <span className="text-foreground">
+                    {formatBR(closing.data)} · Turno {closing.turno} ·{" "}
+                    {closing.frentistaNome ?? "Caixa"}
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    Vendas{" "}
+                    {closing.totalVendas.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}{" "}
+                    · Recebido{" "}
+                    {closing.totalRecebido.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </span>
+                </div>
+              ))}
+          </section>
+        ) : null}
+      </div>
     </AppShell>
   );
 }

@@ -68,7 +68,23 @@ export type ChecklistItem = {
   frequency: ChecklistFrequency;
   /** Indica exigência geral ou ponto condicionado à licença/regra local */
   requirement: "obrigatorio" | "condicional" | "recomendado";
+  requerFoto: boolean;
+  fotoUrl?: string;
+  fotoDataHora?: string;
 };
+
+export function requiresChecklistPhoto(frequency: ChecklistFrequency, title: string) {
+  const normalizedTitle = title
+    .toLocaleUpperCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (frequency === "semanal") return /LACRE|ADESIVO/.test(normalizedTitle);
+  if (frequency === "mensal" || frequency === "trimestral") {
+    return /NOTA|LAUDO|DOCUMENTO|FISCALIZACAO/.test(normalizedTitle);
+  }
+  if (frequency === "semestral") return normalizedTitle.includes("ESTANQUEIDADE");
+  return false;
+}
 
 /** Bico de abastecimento */
 export type Nozzle = {
@@ -123,6 +139,7 @@ export type Delivery = {
   date: string;
   distribuidora: string;
   nf: string;
+  totalNota?: number;
   motorista?: string;
   rgMotorista?: string;
   placaCaminhao?: string;
@@ -134,11 +151,22 @@ export type Delivery = {
 export type OilChange = {
   id: string;
   customerName: string;
+  birthDate?: string;
   whatsapp: string;
   date: string;
   lubricant: string;
   quantity: number;
+  vehicle?: string;
+  plate?: string;
+  currentKm?: number;
+  lastChangeKm?: number;
+  kmInterval?: number;
+  itemValues?: Record<string, number>;
+  itemQuantities?: Record<string, number>;
+  otherServices?: string;
+  observations?: string;
   technician: string;
+  technicianId?: string;
   totalValue: number;
   mileage: number;
   oilFilter: boolean;
@@ -146,7 +174,18 @@ export type OilChange = {
   fuelFilter: boolean;
   cabinFilter: boolean;
   reminderDate: string;
+  reminderSentAt?: string;
   createdAt: string;
+};
+
+export type OilTechnician = {
+  id: string;
+  fullName: string;
+  cpf?: string;
+  rg?: string;
+  mobilePhone: string;
+  photoUrl?: string;
+  registeredAt: string;
 };
 
 export type OilCommissionConfig = {
@@ -154,6 +193,32 @@ export type OilCommissionConfig = {
   salesCommissionPct: number;
   technicianGoal: number;
   technicianCommissionPct: number;
+  mode?: "percent" | "fixed";
+  fixedOilLiter?: number;
+  fixedOilFilter?: number;
+  fixedAirFilter?: number;
+  fixedFuelFilter?: number;
+  fixedCabinFilter?: number;
+};
+
+export type OilQuote = {
+  id: string;
+  customerName: string;
+  whatsapp: string;
+  birthDate: string;
+  technicianId?: string;
+  vehicle: string;
+  plate: string;
+  currentKm: number;
+  lastChangeKm: number;
+  lastChangeDate: string;
+  kmInterval: number;
+  oilType: string;
+  oilFilter: string;
+  quoteValue: number;
+  observations: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type FormaPagamento = { id: string; nome: string; ativo: boolean };
@@ -166,8 +231,9 @@ export type PrecoCombustivel = {
 
 export type FechamentoItem = {
   id: string;
-  tipo: "venda" | "recebimento";
+  tipo: "combustivel" | "produto" | "recebimento" | "venda";
   produto?: string;
+  bicoId?: string;
   formaId?: string;
   formaNome?: string;
   litros?: number;
@@ -180,6 +246,8 @@ export type Fechamento = {
   data: string;
   turno: string;
   frentistaId?: string;
+  frentistaNome?: string;
+  assinatura?: string;
   totalVendas: number;
   totalRecebido: number;
   diferenca: number;
@@ -214,6 +282,8 @@ export type AppState = {
   attendants: Attendant[];
   /** openings[data][tankId] = medida em litros */
   openings: Record<string, Record<string, number>>;
+  /** shiftMeasurements[data][turno][tankId] = medição em litros */
+  shiftMeasurements?: Record<string, Record<number, Record<string, number>>>;
   /** sales[data][turno][tankId] = litros vendidos */
   sales: Record<string, Record<string, Record<string, number>>>;
   products: Product[];
@@ -236,7 +306,9 @@ export type AppState = {
   deliveries?: Delivery[];
   /** Trocas de óleo e lembretes de 150 dias */
   oilChanges?: OilChange[];
+  oilTechnicians?: OilTechnician[];
   oilCommission?: OilCommissionConfig;
+  oilQuotes?: OilQuote[];
   /** Verificações operacionais e de conformidade do gerente */
   checklistItems?: ChecklistItem[];
   /** Último ciclo concluído por item (dia, semana, mês, trimestre ou semestre) */
@@ -276,14 +348,31 @@ export const weekdayBR = (iso: string) => {
 const STORAGE_KEY = "posto-app-v1";
 
 const DEFAULT_FORMAS_PAGAMENTO: FormaPagamento[] = [
-  "Dinheiro",
+  "DINHEIRO",
+  "CARTÃO DÉBITO VISA",
+  "CARTÃO DÉBITO MASTER",
+  "CARTÃO CRÉDITO VISA",
+  "CARTÃO CRÉDITO MASTER",
+  "ELO DÉBITO",
+  "ELO CRÉDITO",
+  "SEM PARAR",
+  "SHELLBOX",
   "PIX",
-  "Cartão Débito",
-  "Cartão Crédito",
-  "Cartões Frota",
-  "Sem Parar",
-  "ShellBox",
 ].map((nome, index) => ({ id: `forma-${index + 1}`, nome, ativo: true }));
+
+function mergePaymentForms(forms?: FormaPagamento[]) {
+  const existing = (forms ?? []).map((form) => ({
+    ...form,
+    nome: form.nome.trim().toLocaleUpperCase("pt-BR"),
+  }));
+  const existingNames = new Set(
+    existing.map((form) => form.nome.trim().toLocaleUpperCase("pt-BR")),
+  );
+  const missingDefaults = DEFAULT_FORMAS_PAGAMENTO.filter(
+    (form) => !existingNames.has(form.nome.toLocaleUpperCase("pt-BR")),
+  ).map((form) => ({ ...form, id: uid() }));
+  return [...existing, ...missingDefaults];
+}
 
 /** Bicos cadastrados pelo usuário; não há bicos padrão. */
 export function defaultNozzles(): Nozzle[] {
@@ -291,7 +380,7 @@ export function defaultNozzles(): Nozzle[] {
 }
 
 export function defaultChecklistItems(): ChecklistItem[] {
-  const items: Array<Omit<ChecklistItem, "id">> = [
+  const items: Array<Omit<ChecklistItem, "id" | "requerFoto">> = [
     {
       frequency: "diario",
       requirement: "obrigatorio",
@@ -476,7 +565,11 @@ export function defaultChecklistItems(): ChecklistItem[] {
       title: "Auditar segurança patrimonial, câmeras, alarmes, acessos e apólices de seguro",
     },
   ];
-  return items.map((item, index) => ({ ...item, id: `check-${index + 1}` }));
+  return items.map((item, index) => ({
+    ...item,
+    id: `check-${index + 1}`,
+    requerFoto: requiresChecklistPhoto(item.frequency, item.title),
+  }));
 }
 
 export const emptyCompany: Company = {
@@ -512,6 +605,7 @@ const defaultState: AppState = {
   ],
 
   openings: {},
+  shiftMeasurements: {},
   sales: {},
   products: [],
   productSales: {},
@@ -524,12 +618,20 @@ const defaultState: AppState = {
   allowedAfericoes: [],
   deliveries: [],
   oilChanges: [],
+  oilTechnicians: [],
   oilCommission: {
     salesGoal: 0,
     salesCommissionPct: 0,
     technicianGoal: 0,
     technicianCommissionPct: 0,
+    mode: "percent",
+    fixedOilLiter: 0,
+    fixedOilFilter: 0,
+    fixedAirFilter: 0,
+    fixedFuelFilter: 0,
+    fixedCabinFilter: 0,
   },
+  oilQuotes: [],
   checklistItems: defaultChecklistItems(),
   checklistChecks: {},
   formasPagamento: DEFAULT_FORMAS_PAGAMENTO,
@@ -547,9 +649,14 @@ function load(): AppState {
       ...defaultState,
       ...parsed,
       company: { ...emptyCompany, ...(parsed.company ?? {}) },
-      formasPagamento: parsed.formasPagamento?.length
-        ? parsed.formasPagamento
-        : DEFAULT_FORMAS_PAGAMENTO,
+      checklistItems: (parsed.checklistItems ?? defaultChecklistItems()).map((item) => ({
+        ...item,
+        requerFoto:
+          typeof item.requerFoto === "boolean"
+            ? item.requerFoto
+            : requiresChecklistPhoto(item.frequency, item.title),
+      })),
+      formasPagamento: mergePaymentForms(parsed.formasPagamento),
       precosCombustivel: parsed.precosCombustivel ?? [],
       fechamentos: parsed.fechamentos ?? [],
     };
@@ -634,6 +741,21 @@ export const actions = {
     update((s) => ({
       ...s,
       openings: { ...s.openings, [date]: { ...(s.openings[date] ?? {}), [tankId]: value } },
+    })),
+
+  setShiftMeasurement: (date: string, shift: number, tankId: string, value: number) =>
+    update((s) => ({
+      ...s,
+      shiftMeasurements: {
+        ...(s.shiftMeasurements ?? {}),
+        [date]: {
+          ...(s.shiftMeasurements?.[date] ?? {}),
+          [shift]: {
+            ...(s.shiftMeasurements?.[date]?.[shift] ?? {}),
+            [tankId]: value,
+          },
+        },
+      },
     })),
 
   setSale: (date: string, shift: number, tankId: string, value: number) =>
@@ -859,19 +981,82 @@ export const actions = {
       oilChanges: (s.oilChanges ?? []).filter((change) => change.id !== id),
     })),
 
+  markOilReminderSent: (id: string) =>
+    update((s) => ({
+      ...s,
+      oilChanges: (s.oilChanges ?? []).map((change) =>
+        change.id === id ? { ...change, reminderSentAt: todayISO() } : change,
+      ),
+    })),
+
+  updateOilChange: (id: string, change: Omit<OilChange, "id" | "createdAt" | "reminderDate">) =>
+    update((s) => ({
+      ...s,
+      oilChanges: (s.oilChanges ?? []).map((item) =>
+        item.id === id
+          ? { ...item, ...change, reminderDate: shiftISO(change.date, 150), updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    })),
+
+  addOilTechnician: (technician: Omit<OilTechnician, "id">) =>
+    update((s) => ({
+      ...s,
+      oilTechnicians: [...(s.oilTechnicians ?? []), { ...technician, id: uid() }],
+    })),
+
+  removeOilTechnician: (id: string) =>
+    update((s) => ({
+      ...s,
+      oilTechnicians: (s.oilTechnicians ?? []).filter((technician) => technician.id !== id),
+    })),
+
   setOilCommission: (config: OilCommissionConfig) =>
     update((s) => ({ ...s, oilCommission: config })),
 
+  addOilQuote: (quote: Omit<OilQuote, "id" | "createdAt" | "updatedAt">) =>
+    update((s) => ({
+      ...s,
+      oilQuotes: [
+        {
+          ...quote,
+          id: uid(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        ...(s.oilQuotes ?? []),
+      ],
+    })),
+
+  updateOilQuote: (id: string, quote: Omit<OilQuote, "id" | "createdAt" | "updatedAt">) =>
+    update((s) => ({
+      ...s,
+      oilQuotes: (s.oilQuotes ?? []).map((item) =>
+        item.id === id
+          ? { ...item, ...quote, updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    })),
+
+  removeOilQuote: (id: string) =>
+    update((s) => ({
+      ...s,
+      oilQuotes: (s.oilQuotes ?? []).filter((item) => item.id !== id),
+    })),
+
   /* ---------- fechamento de caixa ---------- */
 
-  addFormaPagamento: (nome: string) =>
+  addFormaPagamento: (nome: string) => {
+    const id = uid();
     update((s) => ({
       ...s,
       formasPagamento: [
         ...(s.formasPagamento ?? []),
-        { id: uid(), nome: nome.trim(), ativo: true },
+        { id, nome: nome.trim().toLocaleUpperCase("pt-BR"), ativo: true },
       ],
-    })),
+    }));
+    return id;
+  },
 
   toggleFormaPagamento: (id: string) =>
     update((s) => ({
@@ -892,7 +1077,18 @@ export const actions = {
   addFechamento: (fechamento: Omit<Fechamento, "id">) =>
     update((s) => ({
       ...s,
-      fechamentos: [{ ...fechamento, id: uid() }, ...(s.fechamentos ?? [])],
+      fechamentos: [
+        {
+          ...fechamento,
+          id:
+            (s.fechamentos ?? []).find(
+              (item) => item.data === fechamento.data && item.turno === fechamento.turno,
+            )?.id ?? uid(),
+        },
+        ...(s.fechamentos ?? []).filter(
+          (item) => item.data !== fechamento.data || item.turno !== fechamento.turno,
+        ),
+      ],
     })),
 
   removeTask: (id: string) =>
@@ -900,17 +1096,28 @@ export const actions = {
 
   /* ---------- check list gerencial ---------- */
 
-  addChecklistItem: (item: Omit<ChecklistItem, "id">) =>
+  addChecklistItem: (item: Omit<ChecklistItem, "id" | "fotoUrl" | "fotoDataHora">) =>
     update((s) => ({
       ...s,
-      checklistItems: [...(s.checklistItems ?? []), { ...item, id: uid() }],
+      checklistItems: [
+        ...(s.checklistItems ?? []),
+        {
+          ...item,
+          id: uid(),
+        },
+      ],
     })),
 
   updateChecklistItem: (id: string, patch: Partial<ChecklistItem>) =>
     update((s) => ({
       ...s,
       checklistItems: (s.checklistItems ?? []).map((item) =>
-        item.id === id ? { ...item, ...patch } : item,
+        item.id === id
+          ? {
+              ...item,
+              ...patch,
+            }
+          : item,
       ),
     })),
 
@@ -960,6 +1167,7 @@ export function importState(raw: string): boolean {
       faltas: a.faltas ?? [],
     })),
     openings: data.openings ?? {},
+    shiftMeasurements: data.shiftMeasurements ?? {},
     sales: data.sales ?? {},
     products: data.products ?? [],
     productSales: data.productSales ?? {},
@@ -973,10 +1181,29 @@ export function importState(raw: string): boolean {
     allowedAfericoes: data.allowedAfericoes ?? [],
     deliveries: data.deliveries ?? [],
     oilChanges: data.oilChanges ?? [],
-    oilCommission: data.oilCommission ?? defaultState.oilCommission,
-    checklistItems: data.checklistItems ?? defaultChecklistItems(),
+    oilTechnicians: data.oilTechnicians ?? [],
+    oilCommission: data.oilCommission ?? {
+      salesGoal: 0,
+      salesCommissionPct: 0,
+      technicianGoal: 0,
+      technicianCommissionPct: 0,
+      mode: "percent",
+      fixedOilLiter: 0,
+      fixedOilFilter: 0,
+      fixedAirFilter: 0,
+      fixedFuelFilter: 0,
+      fixedCabinFilter: 0,
+    },
+    oilQuotes: data.oilQuotes ?? [],
+    checklistItems: (data.checklistItems ?? defaultChecklistItems()).map((item) => ({
+      ...item,
+      requerFoto:
+        typeof item.requerFoto === "boolean"
+          ? item.requerFoto
+          : requiresChecklistPhoto(item.frequency, item.title),
+    })),
     checklistChecks: data.checklistChecks ?? {},
-    formasPagamento: data.formasPagamento?.length ? data.formasPagamento : DEFAULT_FORMAS_PAGAMENTO,
+    formasPagamento: mergePaymentForms(data.formasPagamento),
     precosCombustivel: data.precosCombustivel ?? [],
     fechamentos: data.fechamentos ?? [],
   }));
@@ -1073,7 +1300,13 @@ export function lmcRows(s: AppState, from: string, to: string): LmcRow[] {
           const hasDelivery = (s.deliveries ?? []).some(
             (delivery) =>
               delivery.date === date &&
-              delivery.items.some((item) => item.tankId === tank.id || item.fuel === tank.name),
+              delivery.items.some(
+                (item) =>
+                  item.tankId === tank.id ||
+                  (!item.tankId &&
+                    item.fuel === tank.name &&
+                    s.tanks.filter((candidate) => candidate.name === item.fuel).length === 1),
+              ),
           );
           const hasNextPhysical = s.openings[shiftISO(date, 1)]?.[tank.id] !== undefined;
           return hasOpening || hasSales || hasDelivery || hasNextPhysical;
@@ -1084,7 +1317,13 @@ export function lmcRows(s: AppState, from: string, to: string): LmcRow[] {
           const received = (s.deliveries ?? [])
             .filter((delivery) => delivery.date === date)
             .flatMap((delivery) => delivery.items)
-            .filter((item) => item.tankId === tank.id || item.fuel === tank.name)
+            .filter(
+              (item) =>
+                item.tankId === tank.id ||
+                (!item.tankId &&
+                  item.fuel === tank.name &&
+                  s.tanks.filter((candidate) => candidate.name === item.fuel).length === 1),
+            )
             .reduce((sum, item) => sum + item.qty, 0);
           const bookStock = opening === undefined ? undefined : opening + received - sales;
           const nextPhysical = s.openings[shiftISO(date, 1)]?.[tank.id];
@@ -1093,7 +1332,7 @@ export function lmcRows(s: AppState, from: string, to: string): LmcRow[] {
               ? undefined
               : nextPhysical - bookStock;
           const lossPercent =
-            difference === undefined || bookStock === 0
+            difference === undefined || bookStock === undefined || bookStock === 0
               ? undefined
               : (difference / bookStock) * 100;
 

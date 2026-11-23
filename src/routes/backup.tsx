@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { downloadBlob } from "@/lib/share-pdf";
 import {
   actions,
   formatBR,
@@ -49,12 +50,7 @@ function BackupPage() {
     new File([serializeState(state)], fileName, { type: "application/json" });
 
   const baixar = () => {
-    const url = URL.createObjectURL(buildFile());
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(buildFile(), fileName);
     setStatus(`Backup salvo como ${fileName}.`);
   };
 

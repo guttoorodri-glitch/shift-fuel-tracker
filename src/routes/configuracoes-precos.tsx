@@ -33,7 +33,7 @@ function PrecosPage() {
 }
 
 function PriceRow({ id, name, initial }: { id: string; name: string; initial: number }) {
-  const value = initial.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const value = initial.toLocaleString("pt-BR", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   return <form className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center" onSubmit={(event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);

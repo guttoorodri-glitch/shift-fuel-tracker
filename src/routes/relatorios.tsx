@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   dailyTotals,
+  datesWithSales,
   fmtL,
   formatBR,
   monthStartISO,
@@ -54,6 +55,7 @@ function RelatoriosPage() {
   const [today, setToday] = useState("1970-01-01");
   const [from, setFrom] = useState("1970-01-01");
   const [to, setTo] = useState("1970-01-01");
+  const [selectedTankId, setSelectedTankId] = useState("todos");
 
   useEffect(() => {
     const current = todayISO();
@@ -62,26 +64,41 @@ function RelatoriosPage() {
     setTo(current);
   }, []);
 
-  const monthTotal = totalInRange(state, monthStartISO(today), today);
-  const rangeTotal = totalInRange(state, from, to);
+  const totalForTank = (start: string, end: string) => {
+    if (selectedTankId === "todos") return totalInRange(state, start, end);
+    return totalsByTank(state, start, end)[selectedTankId] ?? 0;
+  };
+  const monthTotal = totalForTank(monthStartISO(today), today);
+  const rangeTotal = totalForTank(from, to);
 
   const byTank = useMemo(() => {
     const totals = totalsByTank(state, from, to);
-    return state.tanks.map((t, i) => ({
+    return state.tanks.filter((tank) => selectedTankId === "todos" || tank.id === selectedTankId).map((t, i) => ({
       name: `${i + 1}. ${t.name}`,
       short: `${i + 1}. ${t.name.length > 10 ? `${t.name.slice(0, 9)}…` : t.name}`,
       color: t.color,
       litros: totals[t.id] ?? 0,
     }));
-  }, [state, from, to]);
+  }, [state, from, to, selectedTankId]);
 
   const byDay = useMemo(
     () =>
-      dailyTotals(state, from, to).map((d) => ({
-        ...d,
-        label: d.date.slice(8) + "/" + d.date.slice(5, 7),
+      (selectedTankId === "todos"
+        ? dailyTotals(state, from, to)
+        : datesWithSales(state)
+            .filter((date) => date >= from && date <= to)
+            .map((date) => ({
+              date,
+              total: Object.values(state.sales[date] ?? {}).reduce(
+                (sum, shift) => sum + (shift[selectedTankId] ?? 0),
+                0,
+              ),
+            }))
+      ).map((day) => ({
+        ...day,
+        label: day.date.slice(8) + "/" + day.date.slice(5, 7),
       })),
-    [state, from, to],
+    [state, from, to, selectedTankId],
   );
 
   const presets: { label: string; apply: () => void }[] = [
@@ -133,6 +150,19 @@ function RelatoriosPage() {
               onChange={(e) => setTo(e.target.value)}
             />
           </div>
+        </div>
+        <div className="mt-3">
+          <Label className="text-xs text-muted-foreground">Tanque</Label>
+          <select
+            value={selectedTankId}
+            onChange={(event) => setSelectedTankId(event.target.value)}
+            className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          >
+            <option value="todos">Todos os tanques</option>
+            {state.tanks.map((tank) => (
+              <option key={tank.id} value={tank.id}>{tank.name}</option>
+            ))}
+          </select>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {presets.map((p) => (

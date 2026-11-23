@@ -1,7 +1,14 @@
 import jsPDF from "jspdf";
 import type { AppState } from "@/lib/store";
 import { companyName, drawPdfFooter, drawPdfHeader } from "@/lib/pdf-header";
-import { PIX_KEY, PLAN_PRICES, SUBSCRIPTION_PRICE } from "@/hooks/useSubscription";
+import {
+  PIX_KEY,
+  PLAN_MENU_FEATURES,
+  PLAN_PRICES,
+  type SubscriptionPlan,
+  roleAllows,
+} from "@/hooks/useSubscription";
+import type { AccessRole } from "@/lib/local-auth";
 
 export function manualFileName() {
   return "manual-posto-10.pdf";
@@ -24,10 +31,11 @@ const sections: Array<[string, string[]]> = [
     ],
   ],
   [
-    "Medidas e vendas diárias",
+    "MEDIDAS / VENDAS DIÁRIAS",
     [
       "Escolha a data e informe a medição inicial de cada tanque.",
-      "Lance as vendas de cada turno por tanque. O estoque estimado é atualizado na tela.",
+      "Informe a medição de todos os tanques em cada turno configurado em Ajustes. Não é possível salvar o dia com turnos ou medições pendentes.",
+      "Toque em Salvar vendas do dia para gravar as medições de todos os turnos.",
       "Use a visualização Barras ou Tanques para acompanhar vendas e níveis estimados.",
     ],
   ],
@@ -81,14 +89,31 @@ const sections: Array<[string, string[]]> = [
     ],
   ],
   [
-    "TAREFAS",
+    "TAREFAS KANBAN",
     ["Crie tarefas, atribua responsáveis, defina prazo e mova os cartões entre os status."],
   ],
   [
-    "Check List",
+    "CHECK LIST",
     [
       "Consulte as rotinas diárias, semanais, mensais e demais frequências.",
       "Marque cada item concluído no ciclo correspondente.",
+    ],
+  ],
+  [
+    "FECHAMENTO CAIXA",
+    [
+      "Escolha a data e o turno que será conferido. Os bicos são carregados do cadastro de Aferição.",
+      "Informe litros e preço por litro de cada bico. O preço utiliza três casas decimais e o total é calculado automaticamente.",
+      "Some manualmente os valores do mini mercado e produtos, informe todas as formas de recebimento e confira falta ou sobra de caixa.",
+      "Informe o frentista caixa e a assinatura. Salve o fechamento ou gere e compartilhe o PDF pelo WhatsApp.",
+    ],
+  ],
+  [
+    "FECHAMENTO CAIXA",
+    [
+      "Escolha data e turno. O aplicativo carrega os bicos cadastrados em Aferição para lançar litros e preço de venda por litro, com três casas decimais.",
+      "Some mini mercado e produtos vendidos, informe as formas de recebimento e confira se o caixa está certo, faltando ou sobrando.",
+      "Informe o frentista caixa e a assinatura. Salve o fechamento, gere o PDF com os dados do posto ou compartilhe pelo WhatsApp.",
     ],
   ],
   [
@@ -102,14 +127,22 @@ const sections: Array<[string, string[]]> = [
     "Ajustes",
     [
       "Cadastre nome, bandeira, CNPJ, I.E., endereço, número, bairro, cidade, estado e telefone.",
-      "Configure quantidade de turnos, tanques, nomes, capacidades e cores.",
+      "Configure quantidade de turnos, tanques, nomes, capacidades, preços de combustível e cores.",
+      "Ajuste o tamanho das letras e altere a senha de acesso quando necessário.",
       "Os dados do posto aparecem no topo do aplicativo e nos PDFs.",
+    ],
+  ],
+  [
+    "AJUDA",
+    [
+      "Consulte as instruções de cada menu, compare os recursos liberados em cada plano e veja os valores de compra e renovação.",
+      "Salve ou compartilhe separadamente o Manual e o Contrato em PDF.",
     ],
   ],
   [
     "Pagamentos",
     [
-      "Escolha uma das três opções de acesso: TROCA DE ÓLEO, FRENTISTA ou GERENTE.",
+      "Escolha uma das três opções de acesso: TROCADOR DE ÓLEO, FRENTISTA ou GERENTE.",
       "Confira o valor, use o QR Code ou copie o PIX Copia e Cola e, após pagar, toque em Já Fiz o PIX.",
       "A renovação segue o mesmo plano escolhido e libera mais 30 dias de acesso.",
     ],
@@ -152,6 +185,11 @@ export async function buildManualPdf(state: AppState): Promise<Blob> {
     "Manual de uso e planos do Posto 10",
   );
   line("Manual de uso do aplicativo", 16, true);
+  line(
+    "AVISO: FAÇA SEMPRE UMA CÓPIA DE SEGURANÇA. OS DADOS FICAM NO SEU APARELHO. NÃO SOMOS RESPONSÁVEIS POR PERDA OU INDISPONIBILIDADE DOS SEUS DADOS.",
+    11,
+    true,
+  );
   setY(getY() + 8);
   for (const [title, items] of sections) {
     line(title, 12, true);
@@ -164,13 +202,38 @@ export async function buildManualPdf(state: AppState): Promise<Blob> {
     setY(margin);
   }
   line("Compra e renovação", 14, true);
-  line("Todos os planos funcionam por 30 dias e podem ser renovados pelo mesmo valor:");
-  line(`TROCA DE ÓLEO: R$ ${PLAN_PRICES["troca-oleo"]} por 30 dias.`);
-  line(`FRENTISTA: R$ ${PLAN_PRICES.frentista} por 30 dias.`);
-  line(`GERENTE: R$ ${PLAN_PRICES.gerente} por 30 dias.`);
-  line(`Pagamento via PIX na chave ${PIX_KEY}. O valor e o QR Code mudam conforme a opção escolhida.`);
-  line("Após pagar, toque em Já Fiz o PIX - Liberar Agora. Para renovar, escolha novamente o plano e repita o pagamento.");
-  line(`Referência do valor geral exibido no sistema: R$ ${SUBSCRIPTION_PRICE}.`);
+  line(
+    "Perfis de acesso disponíveis. As permissões de cada perfil são diferentes dos planos de cobrança:",
+  );
+  const profiles: Array<{ id: AccessRole; name: string }> = [
+    { id: "PROPRIETARIO", name: "PROPRIETÁRIO" },
+    { id: "GERENTE", name: "GERENTE" },
+    { id: "FRENTISTA", name: "FRENTISTA" },
+    { id: "TROCA-OLEO", name: "TROCA-OLEO" },
+  ];
+  for (const profile of profiles) {
+    const allowedMenus = PLAN_MENU_FEATURES.filter((feature) =>
+      roleAllows(profile.id, feature.path),
+    )
+      .map((feature) => feature.label)
+      .join(", ");
+    line(`${profile.name}: ${allowedMenus}.`);
+  }
+  line("Planos de assinatura, válidos por 30 dias:");
+  const plans: Array<{ id: SubscriptionPlan; name: string }> = [
+    { id: "troca-oleo", name: "TROCADOR DE ÓLEO" },
+    { id: "frentista", name: "FRENTISTA" },
+    { id: "gerente", name: "GERENTE" },
+  ];
+  for (const plan of plans) {
+    line(`${plan.name}: R$ ${PLAN_PRICES[plan.id]} por 30 dias.`);
+  }
+  line(
+    `Pagamento via PIX na chave ${PIX_KEY}. O valor e o QR Code mudam conforme a opção escolhida.`,
+  );
+  line(
+    "Após pagar, toque em Já Fiz o PIX - Liberar Agora. Para renovar, escolha novamente o plano e repita o pagamento.",
+  );
 
   drawPdfFooter(doc, state, "Manual de uso e planos");
   return doc.output("blob");
@@ -186,13 +249,19 @@ export async function buildContratoPdf(
   setY(getY() + 8);
   line("Este documento registra as condições de compra, renovação e uso do aplicativo.", 10);
   line("O usuário escolhe um plano de acesso e realiza o pagamento correspondente por PIX.");
-  line(`TROCA DE ÓLEO: R$ ${PLAN_PRICES["troca-oleo"]} por 30 dias.`);
+  line(`TROCADOR DE ÓLEO: R$ ${PLAN_PRICES["troca-oleo"]} por 30 dias.`);
   line(`FRENTISTA: R$ ${PLAN_PRICES.frentista} por 30 dias.`);
   line(`GERENTE: R$ ${PLAN_PRICES.gerente} por 30 dias.`);
-  line(`O pagamento é feito pela chave PIX ${PIX_KEY}. A renovação deve ser realizada antes do fim do período para manter o acesso.`);
-  line("O prazo começa na data de liberação da assinatura. Sem renovação, o aplicativo poderá entrar em período de tolerância e será bloqueado ao final desse período.");
+  line(
+    `O pagamento é feito pela chave PIX ${PIX_KEY}. A renovação deve ser realizada antes do fim do período para manter o acesso.`,
+  );
+  line(
+    "O prazo começa na data de liberação da assinatura. Sem renovação, o aplicativo poderá entrar em período de tolerância e será bloqueado ao final desse período.",
+  );
   line("O usuário é responsável por guardar suas credenciais e pode alterar a senha em Ajustes.");
-  line(`Ciência registrada: ${contractAccepted ? "SIM" : "NÃO"}${acceptedAt ? ` — ${acceptedAt}` : ""}.`);
+  line(
+    `Ciência registrada: ${contractAccepted ? "SIM" : "NÃO"}${acceptedAt ? ` — ${acceptedAt}` : ""}.`,
+  );
   line(`Documento emitido para ${companyName(state)}.`);
 
   drawPdfFooter(doc, state, "Contrato de uso");
